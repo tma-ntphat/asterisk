@@ -77,6 +77,7 @@ static struct ast_taskprocessor *distributor_pool[DISTRIBUTOR_POOL_SIZE];
 static pj_status_t record_serializer(pjsip_tx_data *tdata)
 {
 	struct ast_taskprocessor *serializer;
+    ast_debug(2, "TMA - record_serializer - START");
 
 	serializer = ast_threadpool_serializer_get_current();
 	if (serializer) {
@@ -96,6 +97,7 @@ static pj_status_t record_serializer(pjsip_tx_data *tdata)
 		}
 	}
 
+    ast_debug(2, "TMA - record_serializer - END");
 	return PJ_SUCCESS;
 }
 
@@ -115,13 +117,16 @@ static struct ast_taskprocessor *find_request_serializer(pjsip_rx_data *rdata)
 	pj_str_t tsx_key;
 	pjsip_transaction *tsx;
 
+	ast_debug(2, "TMA - find_request_serializer - START");
+
 	pjsip_tsx_create_key(rdata->tp_info.pool, &tsx_key, PJSIP_ROLE_UAC,
 		&rdata->msg_info.cseq->method, rdata);
 
 	tsx = pjsip_tsx_layer_find_tsx(&tsx_key, PJ_TRUE);
 	if (!tsx) {
-		ast_debug(1, "Could not find transaction for %s.\n",
+		ast_debug(2, "Could not find transaction for %s.\n",
 			pjsip_rx_data_get_info(rdata));
+		ast_debug(2, "TMA - find_request_serializer - END-1");
 		return NULL;
 	}
 	ast_debug(3, "Found transaction %s for %s.\n",
@@ -146,6 +151,7 @@ static struct ast_taskprocessor *find_request_serializer(pjsip_rx_data *rdata)
 	pj_mutex_unlock(tsx->mutex);
 #endif
 
+	ast_debug(2, "TMA - find_request_serializer - END-2");
 	return serializer;
 }
 
@@ -183,10 +189,12 @@ static struct ao2_container *dialog_associations;
  */
 static int buf_hash_add(const char *pos, size_t len, int hash)
 {
+	ast_debug(2, "TMA - buf_hash_add - START");
 	while (len--) {
 		hash = hash * 33 ^ *pos++;
 	}
 
+	ast_debug(2, "TMA - buf_hash_add - END");
 	return hash;
 }
 
@@ -209,6 +217,8 @@ static int buf_hash_add(const char *pos, size_t len, int hash)
  */
 static int buf_hash(const char *pos, size_t len)
 {
+	ast_debug(2, "TMA - buf_hash - START");
+	ast_debug(2, "TMA - buf_hash - END");
 	return buf_hash_add(pos, len, 5381);
 }
 
@@ -219,6 +229,7 @@ static int dialog_associations_hash(const void *obj, int flags)
 		const pjsip_dialog *dlg;
 		const char buf[sizeof(pjsip_dialog *)];
 	} key;
+	ast_debug(2, "TMA - dialog_associations_hash - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_KEY:
@@ -231,8 +242,10 @@ static int dialog_associations_hash(const void *obj, int flags)
 	default:
 		/* Hash can only work on something with a full key. */
 		ast_assert(0);
+		ast_debug(2, "TMA - dialog_associations_hash - END-1");
 		return 0;
 	}
+	ast_debug(2, "TMA - dialog_associations_hash - END-2");
 	return ast_str_hash_restrict(buf_hash(key.buf, sizeof(key.buf)));
 }
 
@@ -242,6 +255,7 @@ static int dialog_associations_cmp(void *obj, void *arg, int flags)
 	const struct distributor_dialog_data *object_right = arg;
 	const pjsip_dialog *right_key = arg;
 	int cmp = 0;
+	ast_debug(2, "TMA - dialog_associations_cmp - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_OBJECT:
@@ -260,12 +274,14 @@ static int dialog_associations_cmp(void *obj, void *arg, int flags)
 		cmp = 0;
 		break;
 	}
+	ast_debug(2, "TMA - dialog_associations_cmp - END");
 	return cmp;
 }
 
 void ast_sip_dialog_set_serializer(pjsip_dialog *dlg, struct ast_taskprocessor *serializer)
 {
 	struct distributor_dialog_data *dist;
+	ast_debug(2, "TMA - ast_sip_dialog_set_serializer - START");
 
 	ao2_wrlock(dialog_associations);
 	dist = ao2_find(dialog_associations, dlg, OBJ_SEARCH_KEY | OBJ_NOLOCK);
@@ -289,11 +305,13 @@ void ast_sip_dialog_set_serializer(pjsip_dialog *dlg, struct ast_taskprocessor *
 		ao2_ref(dist, -1);
 	}
 	ao2_unlock(dialog_associations);
+	ast_debug(2, "TMA - ast_sip_dialog_set_serializer - END");
 }
 
 void ast_sip_dialog_set_endpoint(pjsip_dialog *dlg, struct ast_sip_endpoint *endpoint)
 {
 	struct distributor_dialog_data *dist;
+	ast_debug(2, "TMA - ast_sip_dialog_set_endpoint - START");
 
 	ao2_wrlock(dialog_associations);
 	dist = ao2_find(dialog_associations, dlg, OBJ_SEARCH_KEY | OBJ_NOLOCK);
@@ -317,13 +335,14 @@ void ast_sip_dialog_set_endpoint(pjsip_dialog *dlg, struct ast_sip_endpoint *end
 		ao2_ref(dist, -1);
 	}
 	ao2_unlock(dialog_associations);
+	ast_debug(2, "TMA - ast_sip_dialog_set_endpoint - END");
 }
 
 struct ast_sip_endpoint *ast_sip_dialog_get_endpoint(pjsip_dialog *dlg)
 {
 	struct distributor_dialog_data *dist;
 	struct ast_sip_endpoint *endpoint;
-
+	ast_debug(2, "TMA - ast_sip_dialog_get_endpoint - START");
 	dist = ao2_find(dialog_associations, dlg, OBJ_SEARCH_KEY);
 	if (dist) {
 		ao2_lock(dist);
@@ -333,6 +352,7 @@ struct ast_sip_endpoint *ast_sip_dialog_get_endpoint(pjsip_dialog *dlg)
 	} else {
 		endpoint = NULL;
 	}
+	ast_debug(2, "TMA - ast_sip_dialog_get_endpoint - END");
 	return endpoint;
 }
 
@@ -343,8 +363,10 @@ static pjsip_dialog *find_dialog(pjsip_rx_data *rdata)
 	pjsip_dialog *dlg;
 	pj_str_t *local_tag;
 	pj_str_t *remote_tag;
+	ast_debug(2, "TMA - find_dialog - START");
 
 	if (!rdata->msg_info.msg) {
+		ast_debug(2, "TMA - find_dialog - END-1");
 		return NULL;
 	}
 
@@ -367,6 +389,7 @@ static pjsip_dialog *find_dialog(pjsip_rx_data *rdata)
 		dlg = pjsip_ua_find_dialog(&rdata->msg_info.cid->id, local_tag,
 				remote_tag, PJ_FALSE);
 		if (dlg) {
+			ast_debug(2, "TMA - find_dialog - END-2");
 			return dlg;
 		}
 	}
@@ -392,6 +415,7 @@ static pjsip_dialog *find_dialog(pjsip_rx_data *rdata)
 	if (!tsx) {
 		ast_debug(3, "Could not find matching transaction for %s\n",
 			pjsip_rx_data_get_info(rdata));
+		ast_debug(2, "TMA - find_dialog - END-3");
 		return NULL;
 	}
 
@@ -403,6 +427,7 @@ static pjsip_dialog *find_dialog(pjsip_rx_data *rdata)
 	pj_mutex_unlock(tsx->mutex);
 #endif
 
+	ast_debug(2, "TMA - find_dialog - END-4");
 	return dlg;
 }
 
@@ -425,6 +450,8 @@ static pjsip_dialog *find_dialog(pjsip_rx_data *rdata)
  */
 static int pjstr_hash_add(pj_str_t *str, int hash)
 {
+	ast_debug(2, "TMA - pjstr_hash_add - START");
+	ast_debug(2, "TMA - pjstr_hash_add - END");
 	return buf_hash_add(pj_strbuf(str), pj_strlen(str), hash);
 }
 
@@ -442,6 +469,8 @@ static int pjstr_hash_add(pj_str_t *str, int hash)
  */
 static int pjstr_hash(pj_str_t *str)
 {
+	ast_debug(2, "TMA - pjstr_hash - START");
+	ast_debug(2, "TMA - pjstr_hash - END");
 	return pjstr_hash_add(str, 5381);
 }
 
@@ -451,7 +480,10 @@ struct ast_taskprocessor *ast_sip_get_distributor_serializer(pjsip_rx_data *rdat
 	pj_str_t *remote_tag;
 	struct ast_taskprocessor *serializer;
 
+	ast_debug(2, "TMA - ast_sip_get_distributor_serializer - START");
+
 	if (!rdata->msg_info.msg) {
+		ast_debug(2, "TMA - ast_sip_get_distributor_serializer - END-1");
 		return NULL;
 	}
 
@@ -471,6 +503,7 @@ struct ast_taskprocessor *ast_sip_get_distributor_serializer(pjsip_rx_data *rdat
 		ast_debug(3, "Calculated serializer %s to use for %s\n",
 			ast_taskprocessor_name(serializer), pjsip_rx_data_get_info(rdata));
 	}
+	ast_debug(2, "TMA - ast_sip_get_distributor_serializer - END-2");
 	return serializer;
 }
 
@@ -488,12 +521,14 @@ static pj_bool_t distributor(pjsip_rx_data *rdata)
 	struct distributor_dialog_data *dist = NULL;
 	struct ast_taskprocessor *serializer = NULL;
 	pjsip_rx_data *clone;
+    ast_debug(2, "TMA - distributor - START");
 
 	if (!ast_test_flag(&ast_options, AST_OPT_FLAG_FULLY_BOOTED)) {
 		/*
 		 * Ignore everything until we are fully booted.  Let the
 		 * peer retransmit messages until we are ready.
 		 */
+		ast_debug(2, "TMA - distributor - END-1");
 		return PJ_TRUE;
 	}
 
@@ -533,6 +568,7 @@ static pj_bool_t distributor(pjsip_rx_data *rdata)
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata,
 			PJSIP_SC_CALL_TSX_DOES_NOT_EXIST, NULL, NULL, NULL);
 		ao2_cleanup(dist);
+		ast_debug(2, "TMA - distributor - END-2");
 		return PJ_TRUE;
 	} else {
 		if ((overload_trigger == TASKPROCESSOR_OVERLOAD_TRIGGER_GLOBAL &&
@@ -561,6 +597,7 @@ static pj_bool_t distributor(pjsip_rx_data *rdata)
 				break;
 			}
 			ao2_cleanup(dist);
+			ast_debug(2, "TMA - distributor - END-3");
 			return PJ_TRUE;
 		}
 
@@ -571,6 +608,7 @@ static pj_bool_t distributor(pjsip_rx_data *rdata)
 	if (pjsip_rx_data_clone(rdata, 0, &clone) != PJ_SUCCESS) {
 		ast_taskprocessor_unreference(serializer);
 		ao2_cleanup(dist);
+		ast_debug(2, "TMA - distributor - END-4");
 		return PJ_TRUE;
 	}
 
@@ -588,16 +626,19 @@ static pj_bool_t distributor(pjsip_rx_data *rdata)
 
 	ast_taskprocessor_unreference(serializer);
 
+	ast_debug(2, "TMA - distributor - END-5");
 	return PJ_TRUE;
 }
 
 static struct ast_sip_auth *alloc_artificial_auth(char *default_realm)
 {
 	struct ast_sip_auth *fake_auth;
+	ast_debug(2, "TMA - alloc_artificial_auth - START");
 
 	fake_auth = ast_sorcery_alloc(ast_sip_get_sorcery(), SIP_SORCERY_AUTH_TYPE,
 		"artificial");
 	if (!fake_auth) {
+		ast_debug(2, "TMA - alloc_artificial_auth - END-1");
 		return NULL;
 	}
 
@@ -606,6 +647,7 @@ static struct ast_sip_auth *alloc_artificial_auth(char *default_realm)
 	ast_string_field_set(fake_auth, auth_pass, "");
 	fake_auth->type = AST_SIP_AUTH_TYPE_ARTIFICIAL;
 
+	ast_debug(2, "TMA - alloc_artificial_auth - END-2");
 	return fake_auth;
 }
 
@@ -615,21 +657,26 @@ static int create_artificial_auth(void)
 {
 	char default_realm[MAX_REALM_LENGTH + 1];
 	struct ast_sip_auth *fake_auth;
+	ast_debug(2, "TMA - create_artificial_auth - START");
 
 	ast_sip_get_default_realm(default_realm, sizeof(default_realm));
 	fake_auth = alloc_artificial_auth(default_realm);
 	if (!fake_auth) {
 		ast_log(LOG_ERROR, "Unable to create artificial auth\n");
+		ast_debug(2, "TMA - create_artificial_auth - END-1");
 		return -1;
 	}
 
 	ao2_global_obj_replace_unref(artificial_auth, fake_auth);
 	ao2_ref(fake_auth, -1);
+	ast_debug(2, "TMA - create_artificial_auth - END-2");
 	return 0;
 }
 
 struct ast_sip_auth *ast_sip_get_artificial_auth(void)
 {
+	ast_debug(2, "TMA - ast_sip_get_artificial_auth - START");
+	ast_debug(2, "TMA - ast_sip_get_artificial_auth - END");
 	return ao2_global_obj_ref(artificial_auth);
 }
 
@@ -637,8 +684,10 @@ static struct ast_sip_endpoint *artificial_endpoint = NULL;
 
 static int create_artificial_endpoint(void)
 {
+	ast_debug(2, "TMA - create_artificial_endpoint - START");
 	artificial_endpoint = ast_sorcery_alloc(ast_sip_get_sorcery(), "endpoint", NULL);
 	if (!artificial_endpoint) {
+		ast_debug(2, "TMA - create_artificial_endpoint - END-1");
 		return -1;
 	}
 
@@ -648,12 +697,15 @@ static int create_artificial_endpoint(void)
 	 * not actually used anywhere
 	 */
 	AST_VECTOR_APPEND(&artificial_endpoint->inbound_auths, ast_strdup("artificial-auth"));
+	ast_debug(2, "TMA - create_artificial_endpoint - END-2");
 	return 0;
 }
 
 struct ast_sip_endpoint *ast_sip_get_artificial_endpoint(void)
 {
+	ast_debug(2, "TMA - ast_sip_get_artificial_endpoint - START");
 	ao2_ref(artificial_endpoint, +1);
+	ast_debug(2, "TMA - ast_sip_get_artificial_endpoint - END");
 	return artificial_endpoint;
 }
 
@@ -663,6 +715,7 @@ static void log_failed_request(pjsip_rx_data *rdata, char *msg, unsigned int cou
 	char callid_buf[PJSIP_MAX_URL_SIZE];
 	char method_buf[PJSIP_MAX_URL_SIZE];
 	char src_addr_buf[AST_SOCKADDR_BUFLEN];
+	ast_debug(2, "TMA - log_failed_request - START");
 	pjsip_uri_print(PJSIP_URI_IN_FROMTO_HDR, rdata->msg_info.from->uri, from_buf, PJSIP_MAX_URL_SIZE);
 	ast_copy_pj_str(callid_buf, &rdata->msg_info.cid->id, PJSIP_MAX_URL_SIZE);
 	ast_copy_pj_str(method_buf, &rdata->msg_info.msg->line.req.method.name, PJSIP_MAX_URL_SIZE);
@@ -678,6 +731,7 @@ static void log_failed_request(pjsip_rx_data *rdata, char *msg, unsigned int cou
 			pj_sockaddr_print(&rdata->pkt_info.src_addr, src_addr_buf, sizeof(src_addr_buf), 3),
 			callid_buf, msg);
 	}
+	ast_debug(2, "TMA - log_failed_request - END");
 }
 
 static void check_endpoint(pjsip_rx_data *rdata, struct unidentified_request *unid,
@@ -685,6 +739,7 @@ static void check_endpoint(pjsip_rx_data *rdata, struct unidentified_request *un
 {
 	int64_t ms = ast_tvdiff_ms(ast_tvnow(), unid->first_seen);
 
+	ast_debug(2, "TMA - check_endpoint - START");
 	ao2_wrlock(unid);
 	unid->count++;
 
@@ -693,6 +748,7 @@ static void check_endpoint(pjsip_rx_data *rdata, struct unidentified_request *un
 		ast_sip_report_invalid_endpoint(name, rdata);
 	}
 	ao2_unlock(unid);
+	ast_debug(2, "TMA - check_endpoint - END");
 }
 
 static int apply_endpoint_acl(pjsip_rx_data *rdata, struct ast_sip_endpoint *endpoint);
@@ -701,18 +757,20 @@ static int apply_endpoint_contact_acl(pjsip_rx_data *rdata, struct ast_sip_endpo
 static void apply_acls(pjsip_rx_data *rdata)
 {
 	struct ast_sip_endpoint *endpoint;
+	ast_debug(2, "TMA - apply_acls - START");
 
 	/* Is the endpoint allowed with the source or contact address? */
 	endpoint = rdata->endpt_info.mod_data[endpoint_mod.id];
 	if (endpoint != artificial_endpoint
 		&& (apply_endpoint_acl(rdata, endpoint)
 			|| apply_endpoint_contact_acl(rdata, endpoint))) {
-		ast_debug(1, "Endpoint '%s' not allowed by ACL\n",
+		ast_debug(2, "Endpoint '%s' not allowed by ACL\n",
 			ast_sorcery_object_get_id(endpoint));
 
 		/* Replace the rdata endpoint with the artificial endpoint. */
 		ao2_replace(rdata->endpt_info.mod_data[endpoint_mod.id], artificial_endpoint);
 	}
+	ast_debug(2, "TMA - apply_acls - END");
 }
 
 static pj_bool_t endpoint_lookup(pjsip_rx_data *rdata)
@@ -720,6 +778,7 @@ static pj_bool_t endpoint_lookup(pjsip_rx_data *rdata)
 	struct ast_sip_endpoint *endpoint;
 	struct unidentified_request *unid;
 	int is_ack = rdata->msg_info.msg->line.req.method.id == PJSIP_ACK_METHOD;
+    ast_debug(2, "TMA - endpoint_lookup - START");
 
 	endpoint = rdata->endpt_info.mod_data[endpoint_mod.id];
 	if (endpoint) {
@@ -735,6 +794,7 @@ static pj_bool_t endpoint_lookup(pjsip_rx_data *rdata)
 			ao2_ref(unid, -1);
 		}
 		apply_acls(rdata);
+		ast_debug(2, "TMA - endpoint_lookup - END-1");
 		return PJ_FALSE;
 	}
 
@@ -785,6 +845,7 @@ static pj_bool_t endpoint_lookup(pjsip_rx_data *rdata)
 				if (!unid) {
 					ao2_unlock(unidentified_requests);
 					pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 500, NULL, NULL, NULL);
+					ast_debug(2, "TMA - endpoint_lookup - END-2");
 					return PJ_TRUE;
 				}
 				strcpy(unid->src_name, rdata->pkt_info.src_name); /* Safe */
@@ -801,14 +862,17 @@ static pj_bool_t endpoint_lookup(pjsip_rx_data *rdata)
 	}
 
 	apply_acls(rdata);
+	ast_debug(2, "TMA - endpoint_lookup - END-3");
 	return PJ_FALSE;
 }
 
 static int apply_endpoint_acl(pjsip_rx_data *rdata, struct ast_sip_endpoint *endpoint)
 {
 	struct ast_sockaddr addr;
+	ast_debug(2, "TMA - apply_endpoint_acl - START");
 
 	if (ast_acl_list_is_empty(endpoint->acl)) {
+		ast_debug(2, "TMA - apply_endpoint_acl - END-1");
 		return 0;
 	}
 
@@ -819,8 +883,10 @@ static int apply_endpoint_acl(pjsip_rx_data *rdata, struct ast_sip_endpoint *end
 	if (ast_apply_acl(endpoint->acl, &addr, "SIP ACL: ") != AST_SENSE_ALLOW) {
 		log_failed_request(rdata, "Not match Endpoint ACL", 0, 0);
 		ast_sip_report_failed_acl(endpoint, rdata, "not_match_endpoint_acl");
+		ast_debug(2, "TMA - apply_endpoint_acl - END-2");
 		return 1;
 	}
+	ast_debug(2, "TMA - apply_endpoint_acl - END-3");
 	return 0;
 }
 
@@ -828,17 +894,21 @@ static int extract_contact_addr(pjsip_contact_hdr *contact, struct ast_sockaddr 
 {
 	pjsip_sip_uri *sip_uri;
 	char host[256];
+	ast_debug(2, "TMA - extract_contact_addr - START");
 
 	if (!contact || contact->star) {
 		*addrs = NULL;
+		ast_debug(2, "TMA - extract_contact_addr - END-1");
 		return 0;
 	}
 	if (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri)) {
 		*addrs = NULL;
+		ast_debug(2, "TMA - extract_contact_addr - END-2");
 		return 0;
 	}
 	sip_uri = pjsip_uri_get_uri(contact->uri);
 	ast_copy_pj_str(host, &sip_uri->host, sizeof(host));
+	ast_debug(2, "TMA - extract_contact_addr - END-3");
 	return ast_sockaddr_resolve(addrs, host, PARSE_PORT_FORBID, AST_AF_UNSPEC);
 }
 
@@ -849,8 +919,10 @@ static int apply_endpoint_contact_acl(pjsip_rx_data *rdata, struct ast_sip_endpo
 	struct ast_sockaddr *contact_addrs;
 	int i;
 	pjsip_contact_hdr *contact = (pjsip_contact_hdr *)&rdata->msg_info.msg->hdr;
+	ast_debug(2, "TMA - apply_endpoint_contact_acl - START");
 
 	if (ast_acl_list_is_empty(endpoint->contact_acl)) {
+		ast_debug(2, "TMA - apply_endpoint_contact_acl - END-1");
 		return 0;
 	}
 
@@ -874,6 +946,7 @@ static int apply_endpoint_contact_acl(pjsip_rx_data *rdata, struct ast_sip_endpo
 		}
 	}
 
+	ast_debug(2, "TMA - apply_endpoint_contact_acl - END-2");
 	return forbidden;
 }
 
@@ -881,10 +954,12 @@ static pj_bool_t authenticate(pjsip_rx_data *rdata)
 {
 	RAII_VAR(struct ast_sip_endpoint *, endpoint, ast_pjsip_rdata_get_endpoint(rdata), ao2_cleanup);
 	int is_ack = rdata->msg_info.msg->line.req.method.id == PJSIP_ACK_METHOD;
+    ast_debug(2, "TMA - authenticate - START");
 
 	ast_assert(endpoint != NULL);
 
 	if (is_ack) {
+		ast_debug(2, "TMA - authenticate - END-1");
 		return PJ_FALSE;
 	}
 
@@ -900,6 +975,7 @@ static pj_bool_t authenticate(pjsip_rx_data *rdata)
 			if (pjsip_endpt_send_response2(ast_sip_get_pjsip_endpoint(), rdata, tdata, NULL, NULL) != PJ_SUCCESS) {
 				pjsip_tx_data_dec_ref(tdata);
 			}
+			ast_debug(2, "TMA - authenticate - END-2");
 			return PJ_TRUE;
 		case AST_SIP_AUTHENTICATION_SUCCESS:
 			/* See note in endpoint_lookup about not holding an unnecessary write lock */
@@ -916,21 +992,25 @@ static pj_bool_t authenticate(pjsip_rx_data *rdata)
 			if (pjsip_endpt_send_response2(ast_sip_get_pjsip_endpoint(), rdata, tdata, NULL, NULL) != PJ_SUCCESS) {
 				pjsip_tx_data_dec_ref(tdata);
 			}
+			ast_debug(2, "TMA - authenticate - END-3");
 			return PJ_TRUE;
 		case AST_SIP_AUTHENTICATION_ERROR:
 			log_failed_request(rdata, "Error to authenticate", 0, 0);
 			ast_sip_report_auth_failed_challenge_response(endpoint, rdata);
 			pjsip_tx_data_dec_ref(tdata);
 			pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 500, NULL, NULL, NULL);
+			ast_debug(2, "TMA - authenticate - END-4");
 			return PJ_TRUE;
 		}
 		pjsip_tx_data_dec_ref(tdata);
 	} else if (endpoint == artificial_endpoint) {
 		/* Uh. Oh.  The artificial endpoint couldn't challenge so block the request. */
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 500, NULL, NULL, NULL);
+		ast_debug(2, "TMA - authenticate - END-5");
 		return PJ_TRUE;
 	}
 
+	ast_debug(2, "TMA - authenticate - END-6");
 	return PJ_FALSE;
 }
 
@@ -952,6 +1032,8 @@ static int distribute(void *data)
 	int is_ack = is_request ? rdata->msg_info.msg->line.req.method.id == PJSIP_ACK_METHOD : 0;
 	struct ast_sip_endpoint *endpoint;
 
+	ast_debug(2, "TMA - distribute - START");
+
 	pjsip_endpt_process_rx_data(ast_sip_get_pjsip_endpoint(), rdata, &param, &handled);
 	if (!handled && is_request && !is_ack) {
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 501, NULL, NULL, NULL);
@@ -963,15 +1045,18 @@ static int distribute(void *data)
 	endpoint = rdata->endpt_info.mod_data[endpoint_mod.id];
 	ao2_cleanup(endpoint);
 	pjsip_rx_data_free_cloned(rdata);
+	ast_debug(2, "TMA - distribute - END");
 	return 0;
 }
 
 struct ast_sip_endpoint *ast_pjsip_rdata_get_endpoint(pjsip_rx_data *rdata)
 {
 	struct ast_sip_endpoint *endpoint = rdata->endpt_info.mod_data[endpoint_mod.id];
+	ast_debug(2, "TMA - ast_pjsip_rdata_get_endpoint - START");
 	if (endpoint) {
 		ao2_ref(endpoint, +1);
 	}
+	ast_debug(2, "TMA - ast_pjsip_rdata_get_endpoint - END");
 	return endpoint;
 }
 
@@ -982,6 +1067,7 @@ static int suspects_sort(const void *obj, const void *arg, int flags)
 	const char *right_key = arg;
 	int cmp;
 
+	ast_debug(2, "TMA - suspects_sort - START");
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_OBJECT:
 		right_key = object_right->src_name;
@@ -996,6 +1082,7 @@ static int suspects_sort(const void *obj, const void *arg, int flags)
 		cmp = 0;
 		break;
 	}
+	ast_debug(2, "TMA - suspects_sort - END");
 	return cmp;
 }
 
@@ -1006,6 +1093,7 @@ static int suspects_compare(void *obj, void *arg, int flags)
 	const char *right_key = arg;
 	int cmp = 0;
 
+	ast_debug(2, "TMA - suspects_compare - START");
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_OBJECT:
 		right_key = object_right->src_name;
@@ -1024,6 +1112,7 @@ static int suspects_compare(void *obj, void *arg, int flags)
 		cmp = 0;
 		break;
 	}
+	ast_debug(2, "TMA - suspects_compare - END");
 	return cmp;
 }
 
@@ -1031,7 +1120,8 @@ static int suspects_hash(const void *obj, int flags)
 {
 	const struct unidentified_request *object;
 	const char *key;
-
+	
+	ast_debug(2, "TMA - suspects_hash - START");
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_KEY:
 		key = obj;
@@ -1043,45 +1133,57 @@ static int suspects_hash(const void *obj, int flags)
 	default:
 		/* Hash can only work on something with a full key. */
 		ast_assert(0);
+		ast_debug(2, "TMA - suspects_hash - END-1");
 		return 0;
 	}
+	ast_debug(2, "TMA - suspects_hash - END-2");
 	return ast_str_hash(key);
 }
 
 static struct ao2_container *cli_unid_get_container(const char *regex)
 {
 	struct ao2_container *s_container;
+	ast_debug(2, "TMA - cli_unid_get_container - START");
 
 	s_container = ao2_container_alloc_list(AO2_ALLOC_OPT_LOCK_NOLOCK, 0,
 		suspects_sort, suspects_compare);
 	if (!s_container) {
+		ast_debug(2, "TMA - cli_unid_get_container - END-1");
 		return NULL;
 	}
 
 	if (ao2_container_dup(s_container, unidentified_requests, 0)) {
 		ao2_ref(s_container, -1);
+		ast_debug(2, "TMA - cli_unid_get_container - END-2");
 		return NULL;
 	}
 
+	ast_debug(2, "TMA - cli_unid_get_container - END-3");
 	return s_container;
 }
 
 static int cli_unid_iterate(void *container, ao2_callback_fn callback, void *args)
 {
+	ast_debug(2, "TMA - cli_unid_iterate - START");
 	ao2_callback(container, 0, callback, args);
+	ast_debug(2, "TMA - cli_unid_iterate - END");
 
 	return 0;
 }
 
 static void *cli_unid_retrieve_by_id(const char *id)
 {
+	ast_debug(2, "TMA - cli_unid_retrieve_by_id - START");
 	return ao2_find(unidentified_requests, id, OBJ_SEARCH_KEY);
+	ast_debug(2, "TMA - cli_unid_retrieve_by_id - END");
 }
 
 static const char *cli_unid_get_id(const void *obj)
 {
 	const struct unidentified_request *unid = obj;
+	ast_debug(2, "TMA - cli_unid_get_id - START");
 
+	ast_debug(2, "TMA - cli_unid_get_id - END");
 	return unid->src_name;
 }
 
@@ -1092,6 +1194,7 @@ static int cli_unid_print_header(void *obj, void *arg, int flags)
 
 	int indent = CLI_INDENT_TO_SPACES(context->indent_level);
 	int filler = CLI_LAST_TABSTOP - indent - 7;
+	ast_debug(2, "TMA - cli_unid_print_header - START");
 
 	ast_assert(context->output_buffer != NULL);
 
@@ -1099,6 +1202,7 @@ static int cli_unid_print_header(void *obj, void *arg, int flags)
 		"%*s:  <IP Address%*.*s>  <Count> <Age(sec)>\n",
 		indent, "Request", filler, filler, CLI_HEADER_FILLER);
 
+	ast_debug(2, "TMA - cli_unid_print_header - END");
 	return 0;
 }
 
@@ -1110,6 +1214,7 @@ static int cli_unid_print_body(void *obj, void *arg, int flags)
 	int flexwidth;
 	int64_t ms = ast_tvdiff_ms(ast_tvnow(), unid->first_seen);
 
+	ast_debug(2, "TMA - cli_unid_print_body - START");
 	ast_assert(context->output_buffer != NULL);
 
 	indent = CLI_INDENT_TO_SPACES(context->indent_level);
@@ -1121,6 +1226,7 @@ static int cli_unid_print_body(void *obj, void *arg, int flags)
 		flexwidth, flexwidth,
 		unid->src_name, unid->count,  ms / 1000.0);
 
+	ast_debug(2, "TMA - cli_unid_print_body - END");
 	return 0;
 }
 
@@ -1138,11 +1244,14 @@ static int expire_requests(void *object, void *arg, int flags)
 	struct unidentified_request *unid = object;
 	int *maxage = arg;
 	int64_t ms = ast_tvdiff_ms(ast_tvnow(), unid->first_seen);
+	ast_debug(2, "TMA - expire_requests - START");
 
 	if (ms > (*maxage) * 2 * 1000) {
+		ast_debug(2, "TMA - expire_requests - END-1");
 		return CMP_MATCH;
 	}
 
+	ast_debug(2, "TMA - expire_requests - END-2");
 	return 0;
 }
 
@@ -1150,16 +1259,20 @@ static int prune_task(const void *data)
 {
 	unsigned int maxage;
 
+	ast_debug(2, "TMA - prune_task - START");
 	ast_sip_get_unidentified_request_thresholds(&unidentified_count, &unidentified_period, &unidentified_prune_interval);
 	maxage = unidentified_period * 2;
 	ao2_callback(unidentified_requests, OBJ_MULTIPLE | OBJ_NODATA | OBJ_UNLINK, expire_requests, &maxage);
 
+	ast_debug(2, "TMA - prune_task - END");
 	return unidentified_prune_interval * 1000;
 }
 
 static int clean_task(const void *data)
 {
+	ast_debug(2, "TMA - clean_task - START");
 	return 0;
+	ast_debug(2, "TMA - clean_task - END");
 }
 
 static void global_loaded(const char *object_type)
@@ -1167,6 +1280,8 @@ static void global_loaded(const char *object_type)
 	char default_realm[MAX_REALM_LENGTH + 1];
 	struct ast_sip_auth *fake_auth;
 	char *identifier_order;
+
+	ast_debug(2, "TMA - global_loaded - START");
 
 	/* Update using_auth_username */
 	identifier_order = ast_sip_get_endpoint_identifier_order();
@@ -1206,8 +1321,10 @@ static void global_loaded(const char *object_type)
 	ast_sched_clean_by_callback(prune_context, prune_task, clean_task);
 	/* Have to do something with the return value to shut up the stupid compiler. */
 	if (ast_sched_add_variable(prune_context, unidentified_prune_interval * 1000, prune_task, NULL, 1) < 0) {
+		ast_debug(2, "TMA - global_loaded - END-1");
 		return;
 	}
+	ast_debug(2, "TMA - global_loaded - END-2");
 }
 
 /*! \brief Observer which is used to update our interval and default_realm when the global setting changes */
@@ -1225,11 +1342,13 @@ static struct ast_sorcery_observer global_observer = {
 static void distributor_pool_shutdown(void)
 {
 	int idx;
+	ast_debug(2, "TMA - distributor_pool_shutdown - START");
 
 	for (idx = 0; idx < ARRAY_LEN(distributor_pool); ++idx) {
 		ast_taskprocessor_unreference(distributor_pool[idx]);
 		distributor_pool[idx] = NULL;
 	}
+	ast_debug(2, "TMA - distributor_pool_shutdown - END");
 }
 
 /*!
@@ -1244,6 +1363,7 @@ static int distributor_pool_setup(void)
 {
 	char tps_name[AST_TASKPROCESSOR_MAX_NAME + 1];
 	int idx;
+	ast_debug(2, "TMA - distributor_pool_setup - START");
 
 	for (idx = 0; idx < ARRAY_LEN(distributor_pool); ++idx) {
 		/* Create name with seq number appended. */
@@ -1251,17 +1371,21 @@ static int distributor_pool_setup(void)
 
 		distributor_pool[idx] = ast_sip_create_serializer(tps_name);
 		if (!distributor_pool[idx]) {
+			ast_debug(2, "TMA - distributor_pool_setup - END");
 			return -1;
 		}
 	}
+	ast_debug(2, "TMA - distributor_pool_setup - END");
 	return 0;
 }
 
 int ast_sip_initialize_distributor(void)
 {
+	ast_debug(2, "TMA - ast_sip_initialize_distributor - START");
 	unidentified_requests = ao2_container_alloc_hash(AO2_ALLOC_OPT_LOCK_RWLOCK, 0,
 		DEFAULT_SUSPECTS_BUCKETS, suspects_hash, NULL, suspects_compare);
 	if (!unidentified_requests) {
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-1");
 		return -1;
 	}
 
@@ -1270,22 +1394,26 @@ int ast_sip_initialize_distributor(void)
 		dialog_associations_cmp);
 	if (!dialog_associations) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-2");
 		return -1;
 	}
 
 	if (distributor_pool_setup()) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-3");
 		return -1;
 	}
 
 	prune_context = ast_sched_context_create();
 	if (!prune_context) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-4");
 		return -1;
 	}
 
 	if (ast_sched_start_thread(prune_context)) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-5");
 		return -1;
 	}
 
@@ -1294,19 +1422,23 @@ int ast_sip_initialize_distributor(void)
 
 	if (create_artificial_endpoint() || create_artificial_auth()) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-6");
 		return -1;
 	}
 
 	if (ast_sip_register_service(&distributor_mod)) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-7");
 		return -1;
 	}
 	if (ast_sip_register_service(&endpoint_mod)) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-8");
 		return -1;
 	}
 	if (ast_sip_register_service(&auth_mod)) {
 		ast_sip_destroy_distributor();
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-9");
 		return -1;
 	}
 
@@ -1315,6 +1447,7 @@ int ast_sip_initialize_distributor(void)
 	if (!unid_formatter) {
 		ast_sip_destroy_distributor();
 		ast_log(LOG_ERROR, "Unable to allocate memory for unid_formatter\n");
+		ast_debug(2, "TMA - ast_sip_initialize_distributor - END-10");
 		return -1;
 	}
 	unid_formatter->name = "unidentified_request";
@@ -1328,11 +1461,13 @@ int ast_sip_initialize_distributor(void)
 
 	ast_cli_register_multiple(cli_commands, ARRAY_LEN(cli_commands));
 
+	ast_debug(2, "TMA - ast_sip_initialize_distributor - END-11");
 	return 0;
 }
 
 void ast_sip_destroy_distributor(void)
 {
+	ast_debug(2, "TMA - ast_sip_destroy_distributor - START");
 	ast_cli_unregister_multiple(cli_commands, ARRAY_LEN(cli_commands));
 	ast_sip_unregister_cli_formatter(unid_formatter);
 
@@ -1353,4 +1488,5 @@ void ast_sip_destroy_distributor(void)
 
 	ao2_cleanup(dialog_associations);
 	ao2_cleanup(unidentified_requests);
+	ast_debug(2, "TMA - ast_sip_destroy_distributor - END");
 }

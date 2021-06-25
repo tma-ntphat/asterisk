@@ -331,6 +331,7 @@ static void set_redirecting_reason_by_cause(pjsip_name_addr *name_addr,
 	pjsip_param *cause = NULL;
 	unsigned long cause_value = 0;
 
+    ast_log(LOG_DEBUG, "TMA - 334");
 	if (!PJSIP_URI_SCHEME_IS_SIP(uri) && !PJSIP_URI_SCHEME_IS_SIPS(uri)) {
 		return;
 	}

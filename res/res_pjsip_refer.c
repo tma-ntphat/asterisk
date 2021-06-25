@@ -1134,6 +1134,7 @@ static int refer_incoming_refer_request(struct ast_sip_session *session, struct 
 
 	target = pjsip_parse_uri(rdata->tp_info.pool, uri, uri_size - 1, 0);
 
+    ast_log(LOG_DEBUG, "TMA - 1137");
 	if (!target
 		|| (!PJSIP_URI_SCHEME_IS_SIP(target)
 			&& !PJSIP_URI_SCHEME_IS_SIPS(target))) {

@@ -2992,6 +2992,7 @@ static pj_bool_t pubsub_on_rx_subscribe_request(pjsip_rx_data *rdata)
 
 	request_uri = rdata->msg_info.msg->line.req.uri;
 
+    ast_log(LOG_DEBUG, "TMA - 2995");
 	if (!PJSIP_URI_SCHEME_IS_SIP(request_uri) && !PJSIP_URI_SCHEME_IS_SIPS(request_uri)) {
 		char uri_str[PJSIP_MAX_URL_SIZE];
 
@@ -3225,6 +3226,7 @@ static struct ast_sip_publication *publish_request_initial(struct ast_sip_endpoi
 
 	request_uri = rdata->msg_info.msg->line.req.uri;
 
+    ast_log(LOG_DEBUG, "TMA - 3228");
 	if (!PJSIP_URI_SCHEME_IS_SIP(request_uri) && !PJSIP_URI_SCHEME_IS_SIPS(request_uri)) {
 		char uri_str[PJSIP_MAX_URL_SIZE];
 
@@ -3706,6 +3708,7 @@ static pj_bool_t pubsub_on_rx_notify_request(pjsip_rx_data *rdata)
 
 static pj_bool_t pubsub_on_rx_request(pjsip_rx_data *rdata)
 {
+    ast_debug(2, "TMA - pubsub_on_rx_request - START");
 	if (!pjsip_method_cmp(&rdata->msg_info.msg->line.req.method, pjsip_get_subscribe_method())) {
 		return pubsub_on_rx_subscribe_request(rdata);
 	} else if (!pjsip_method_cmp(&rdata->msg_info.msg->line.req.method, &pjsip_publish_method)) {

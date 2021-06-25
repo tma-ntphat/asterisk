@@ -46,34 +46,45 @@ struct stasis_app_stored_recording {
 static void stored_recording_dtor(void *obj)
 {
 	struct stasis_app_stored_recording *recording = obj;
+	ast_debug(5, "TMA - stored_recording_dtor - START");
 
 	ast_string_field_free_memory(recording);
+	ast_debug(5, "TMA - stored_recording_dtor - END");
 }
 
 const char *stasis_app_stored_recording_get_file(
 	struct stasis_app_stored_recording *recording)
 {
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_file - START");
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording_get_file - END-1");
 		return NULL;
 	}
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_file - END-2");
 	return recording->file;
 }
 
 const char *stasis_app_stored_recording_get_filename(
 	struct stasis_app_stored_recording *recording)
 {
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_filename - START");
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording_get_filename - END-1");
 		return NULL;
 	}
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_filename - END-2");
 	return recording->file_with_ext;
 }
 
 const char *stasis_app_stored_recording_get_extension(
 	struct stasis_app_stored_recording *recording)
 {
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_extension - START");
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording_get_extension - END-1");
 		return NULL;
 	}
+	ast_debug(5, "TMA - stasis_app_stored_recording_get_extension - END-2");
 	return recording->format;
 }
 
@@ -97,8 +108,11 @@ static int split_path(const char *path, char **dir, char **file)
 	char *last_slash;
 	const char *file_portion;
 
+	ast_debug(5, "TMA - split_path - START");
+
 	relative_dir = ast_strdup(path);
 	if (!relative_dir) {
+		ast_debug(5, "TMA - split_path - END-1");
 		return -1;
 	}
 
@@ -115,16 +129,19 @@ static int split_path(const char *path, char **dir, char **file)
 		absolute_dir = ast_strdup(ast_config_AST_RECORDING_DIR);
 	}
 	if (!absolute_dir) {
+		ast_debug(5, "TMA - split_path - END-2");
 		return -1;
 	}
 
 	real_dir = realpath(absolute_dir, NULL);
 	if (!real_dir) {
+		ast_debug(5, "TMA - split_path - END-3");
 		return -1;
 	}
 
 	*dir = ast_strdup(real_dir); /* Dupe so we can ast_free() */
 	*file = ast_strdup(file_portion);
+	ast_debug(5, "TMA - split_path - END-4");
 	return (*dir && *file) ? 0 : -1;
 }
 
@@ -136,9 +153,11 @@ struct match_recording_data {
 static int is_recording(const char *filename)
 {
 	const char *ext = strrchr(filename, '.');
+	ast_debug(5, "TMA - is_recording - START");
 
 	if (!ext) {
 		/* No file extension; not us */
+		ast_debug(5, "TMA - is_recording - END-1");
 		return 0;
 	}
 	++ext;
@@ -147,10 +166,12 @@ static int is_recording(const char *filename)
 		ast_debug(5, "Recording %s: unrecognized format %s\n",
 			filename, ext);
 		/* Keep looking */
+		ast_debug(5, "TMA - is_recording - END-2");
 		return 0;
 	}
 
 	/* Return the index to the .ext */
+	ast_debug(5, "TMA - is_recording - END-3");
 	return ext - filename - 1;
 }
 
@@ -159,15 +180,19 @@ static int handle_find_recording(const char *dir_name, const char *filename, voi
 	struct match_recording_data *data = obj;
 	int num;
 
+	ast_debug(5, "TMA - handle_find_recording - START");
 	/* If not a recording or the names do not match the keep searching */
 	if (!(num = is_recording(filename)) || strncmp(data->file, filename, num)) {
+		ast_debug(5, "TMA - handle_find_recording - END-1");
 		return 0;
 	}
 
 	if (ast_asprintf(&data->file_with_ext, "%s/%s", dir_name, filename) < 0) {
+		ast_debug(5, "TMA - handle_find_recording - END-2");
 		return -1;
 	}
 
+	ast_debug(5, "TMA - handle_find_recording - END-3");
 	return 1;
 }
 
@@ -188,10 +213,12 @@ static char *find_recording(const char *dir_name, const char *file)
 		.file = file,
 		.file_with_ext = NULL
 	};
+	ast_debug(5, "TMA - find_recording - START");
 
 	ast_file_read_dir(dir_name, handle_find_recording, &data);
 
 	/* Note, string potentially allocated in handle_file_recording */
+	ast_debug(5, "TMA - find_recording - END");
 	return data.file_with_ext;
 }
 
@@ -203,18 +230,22 @@ static struct stasis_app_stored_recording *recording_alloc(void)
 	RAII_VAR(struct stasis_app_stored_recording *, recording, NULL,
 		ao2_cleanup);
 	int res;
+	ast_debug(5, "TMA - stasis_app_stored_recording - START");
 
 	recording = ao2_alloc(sizeof(*recording), stored_recording_dtor);
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-1");
 		return NULL;
 	}
 
 	res = ast_string_field_init(recording, 255);
 	if (res != 0) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-2");
 		return NULL;
 	}
 
 	ao2_ref(recording, +1);
+	ast_debug(5, "TMA - stasis_app_stored_recording - END-3");
 	return recording;
 }
 
@@ -224,6 +255,7 @@ static int recording_sort(const void *obj_left, const void *obj_right, int flags
 	const struct stasis_app_stored_recording *object_right = obj_right;
 	const char *right_key = obj_right;
 	int cmp;
+	ast_debug(5, "TMA - recording_sort - START");
 
 	switch (flags & (OBJ_POINTER | OBJ_KEY | OBJ_PARTIAL_KEY)) {
 	case OBJ_POINTER:
@@ -245,6 +277,7 @@ static int recording_sort(const void *obj_left, const void *obj_right, int flags
 		cmp = 0;
 		break;
 	}
+	ast_debug(5, "TMA - recording_sort - END");
 	return cmp;
 }
 
@@ -254,18 +287,23 @@ static int handle_scan_file(const char *dir_name, const char *filename, void *ob
 	struct stasis_app_stored_recording *recording;
 	char *dot, *filepath;
 
+	ast_debug(5, "TMA - handle_scan_file - START");
+
 	/* Skip if it is not a recording */
 	if (!is_recording(filename)) {
+		ast_debug(5, "TMA - handle_scan_file - END-1");
 		return 0;
 	}
 
 	if (ast_asprintf(&filepath, "%s/%s", dir_name, filename) < 0) {
+		ast_debug(5, "TMA - handle_scan_file - END-2");
 		return -1;
 	}
 
 	recording = recording_alloc();
 	if (!recording) {
 		ast_free(filepath);
+		ast_debug(5, "TMA - handle_scan_file - END-3");
 		return -1;
 	}
 
@@ -286,7 +324,8 @@ static int handle_scan_file(const char *dir_name, const char *filename, void *ob
 	/* Add it to the recordings container */
 	ao2_link(recordings, recording);
 	ao2_ref(recording, -1);
-
+	
+	ast_debug(5, "TMA - handle_scan_file - END-4");
 	return 0;
 }
 
@@ -295,9 +334,12 @@ struct ao2_container *stasis_app_stored_recording_find_all(void)
 	struct ao2_container *recordings;
 	int res;
 
+	ast_debug(5, "TMA - stasis_app_stored_recording_find_all - START");
+
 	recordings = ao2_container_alloc_rbtree(AO2_ALLOC_OPT_LOCK_NOLOCK,
 		AO2_CONTAINER_ALLOC_OPT_DUPS_REPLACE, recording_sort, NULL);
 	if (!recordings) {
+		ast_debug(5, "TMA - stasis_app_stored_recording_find_all - END-1");
 		return NULL;
 	}
 
@@ -305,9 +347,11 @@ struct ao2_container *stasis_app_stored_recording_find_all(void)
 				 handle_scan_file, recordings, -1);
 	if (res) {
 		ao2_ref(recordings, -1);
+		ast_debug(5, "TMA - stasis_app_stored_recording_find_all - END-2");
 		return NULL;
 	}
 
+	ast_debug(5, "TMA - stasis_app_stored_recording_find_all - END-3");
 	return recordings;
 }
 
@@ -322,21 +366,25 @@ struct stasis_app_stored_recording *stasis_app_stored_recording_find_by_name(
 	int res;
 	struct stat file_stat;
 	int prefix_len = strlen(ast_config_AST_RECORDING_DIR);
+	ast_debug(5, "TMA - stasis_app_stored_recording - START");
 
 	errno = 0;
 
 	if (!name) {
 		errno = EINVAL;
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-1");
 		return NULL;
 	}
 
 	recording = recording_alloc();
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-2");
 		return NULL;
 	}
 
 	res = split_path(name, &dir, &file);
 	if (res != 0) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-3");
 		return NULL;
 	}
 	ast_string_field_build(recording, file, "%s/%s", dir, file);
@@ -352,7 +400,7 @@ struct stasis_app_stored_recording *stasis_app_stored_recording_find_by_name(
 				dir);
 			ast_std_free(real_basedir);
 			errno = EACCES;
-
+			ast_debug(5, "TMA - stasis_app_stored_recording - END-4");
 			return NULL;
 		}
 
@@ -367,27 +415,32 @@ struct stasis_app_stored_recording *stasis_app_stored_recording_find_by_name(
 
 	file_with_ext = find_recording(dir, file);
 	if (!file_with_ext) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-5");
 		return NULL;
 	}
 	ast_string_field_set(recording, file_with_ext, file_with_ext);
 	recording->format = strrchr(recording->file_with_ext, '.');
 	if (!recording->format) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-6");
 		return NULL;
 	}
 	++(recording->format);
 
 	res = stat(file_with_ext, &file_stat);
 	if (res != 0) {
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-7");
 		return NULL;
 	}
 
 	if (!S_ISREG(file_stat.st_mode)) {
 		/* Let's not play if it's not a regular file */
 		errno = EACCES;
+		ast_debug(5, "TMA - stasis_app_stored_recording - END-8");
 		return NULL;
 	}
 
 	ao2_ref(recording, +1);
+	ast_debug(5, "TMA - stasis_app_stored_recording - END-9");
 	return recording;
 }
 
@@ -399,6 +452,7 @@ int stasis_app_stored_recording_copy(struct stasis_app_stored_recording *src_rec
 	char *format;
 	char *last_slash;
 	int res;
+	ast_debug(5, "TMA - stasis_app_stored_recording_copy - START");
 
 	/* Drop the extension if specified, core will do this for us */
 	format = strrchr(dst_file, '.');
@@ -413,20 +467,24 @@ int stasis_app_stored_recording_copy(struct stasis_app_stored_recording *src_rec
 
 		*last_slash = '\0';
 		if (ast_asprintf(&tmp_path, "%s/%s", ast_config_AST_RECORDING_DIR, dst_file) < 0) {
+			ast_debug(5, "TMA - stasis_app_stored_recording_copy - END-1");
 			return -1;
 		}
 		if (ast_safe_mkdir(ast_config_AST_RECORDING_DIR,
 				tmp_path, 0777) != 0) {
 			/* errno set by ast_mkdir */
+			ast_debug(5, "TMA - stasis_app_stored_recording_copy - END-2");
 			return -1;
 		}
 		*last_slash = '/';
 		if (ast_asprintf(&full_path, "%s/%s", ast_config_AST_RECORDING_DIR, dst_file) < 0) {
+			ast_debug(5, "TMA - stasis_app_stored_recording_copy - END-3");
 			return -1;
 		}
 	} else {
 		/* There is no directory portion */
 		if (ast_asprintf(&full_path, "%s/%s", ast_config_AST_RECORDING_DIR, dst_file) < 0) {
+			ast_debug(5, "TMA - stasis_app_stored_recording_copy - END-4");
 			return -1;
 		}
 	}
@@ -438,23 +496,30 @@ int stasis_app_stored_recording_copy(struct stasis_app_stored_recording *src_rec
 		*dst_recording = stasis_app_stored_recording_find_by_name(dst_file);
 	}
 
+	ast_debug(5, "TMA - stasis_app_stored_recording_copy - END-5");
+
 	return res;
 }
 
 int stasis_app_stored_recording_delete(
 	struct stasis_app_stored_recording *recording)
 {
+	ast_debug(5, "TMA - stasis_app_stored_recording_delete - START");
 	/* Path was validated when the recording object was created */
+	ast_debug(5, "TMA - stasis_app_stored_recording_delete - END");
 	return unlink(recording->file_with_ext);
 }
 
 struct ast_json *stasis_app_stored_recording_to_json(
 	struct stasis_app_stored_recording *recording)
 {
+	ast_debug(5, "TMA - stasis_app_stored_recording_to_json - START");
 	if (!recording) {
+		ast_debug(5, "TMA - stasis_app_stored_recording_to_json - END-1");
 		return NULL;
 	}
 
+	ast_debug(5, "TMA - stasis_app_stored_recording_to_json - END-2");
 	return ast_json_pack("{ s: s, s: s }",
 		"name", recording->name,
 		"format", recording->format);

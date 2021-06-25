@@ -692,13 +692,16 @@ static void sprint_list_entry(struct pjsip_history_entry *entry, char *line, int
 static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 {
 	struct pjsip_history_entry *entry;
+    ast_debug(2, "TMA - history_on_tx_msg - START");
 
 	if (!enabled) {
+        ast_debug(2, "TMA - history_on_tx_msg - END - 1");
 		return PJ_SUCCESS;
 	}
 
 	entry = pjsip_history_entry_alloc(tdata->msg);
 	if (!entry) {
+        ast_debug(2, "TMA - history_on_tx_msg - END - 2");
 		return PJ_SUCCESS;
 	}
 	entry->transmitted = 1;
@@ -719,6 +722,7 @@ static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 		ast_log_dynamic_level(log_level, "%s\n", line);
 	}
 
+    ast_debug(2, "TMA - history_on_tx_msg - END");
 	return PJ_SUCCESS;
 }
 
@@ -726,6 +730,7 @@ static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 static pj_bool_t history_on_rx_msg(pjsip_rx_data *rdata)
 {
 	struct pjsip_history_entry *entry;
+    ast_debug(2, "TMA - history_on_rx_msg - START");
 
 	if (!enabled) {
 		return PJ_FALSE;

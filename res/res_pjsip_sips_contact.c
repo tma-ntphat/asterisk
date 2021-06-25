@@ -41,30 +41,36 @@ static pj_status_t sips_contact_on_tx_request(pjsip_tx_data *tdata)
 	pjsip_contact_hdr *contact;
 	pjsip_route_hdr *route;
 	pjsip_sip_uri *contact_uri;
+    ast_debug(2, "TMA - sips_contact_on_tx_request - START");
 
 	contact = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CONTACT, NULL);
 	if (!contact) {
+        ast_debug(2, "TMA - sips_contact_on_tx_request - END - 1");
 		return PJ_SUCCESS;
 	}
 
 	contact_uri = pjsip_uri_get_uri(contact->uri);
 	if (PJSIP_URI_SCHEME_IS_SIPS(contact_uri)) {
 		/* If the Contact header is already SIPS, then we don't need to do anything */
+        ast_debug(2, "TMA - sips_contact_on_tx_request - END - 2");
 		return PJ_SUCCESS;
 	}
 
 	if (PJSIP_URI_SCHEME_IS_SIPS(tdata->msg->line.req.uri)) {
 		ast_debug(1, "Upgrading contact URI on outgoing SIP request to SIPS due to SIPS Request URI\n");
 		pjsip_sip_uri_set_secure(contact_uri, PJ_TRUE);
+        ast_debug(2, "TMA - sips_contact_on_tx_request - END - 3");
 		return PJ_SUCCESS;
 	}
 
 	route = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_ROUTE, NULL);
 	if (!route) {
+        ast_debug(2, "TMA - sips_contact_on_tx_request - END - 4");
 		return PJ_SUCCESS;
 	}
 
 	if (!PJSIP_URI_SCHEME_IS_SIPS(&route->name_addr)) {
+        ast_debug(2, "TMA - sips_contact_on_tx_request - END - 5");
 		return PJ_SUCCESS;
 	}
 
@@ -72,6 +78,7 @@ static pj_status_t sips_contact_on_tx_request(pjsip_tx_data *tdata)
 	ast_debug(1, "Upgrading contact URI on outgoing SIP request to SIPS due to SIPS Route header\n");
 	pjsip_sip_uri_set_secure(contact_uri, PJ_TRUE);
 
+    ast_debug(2, "TMA - sips_contact_on_tx_request - END");
 	return PJ_SUCCESS;
 }
 

@@ -34,6 +34,7 @@ static int get_endpoint_details(pjsip_rx_data *rdata, char *domain, size_t domai
 {
 	pjsip_uri *from = rdata->msg_info.from->uri;
 	pjsip_sip_uri *sip_from;
+    ast_log(LOG_DEBUG, "TMA - 37");
 	if (!PJSIP_URI_SCHEME_IS_SIP(from) && !PJSIP_URI_SCHEME_IS_SIPS(from)) {
 		return -1;
 	}

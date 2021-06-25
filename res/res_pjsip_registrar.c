@@ -167,6 +167,7 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 		}
 		previous = contact;
 
+        ast_log(LOG_DEBUG, "TMA - 170");
 		if (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri)) {
 			continue;
 		}
@@ -230,6 +231,7 @@ static int registrar_add_contact(void *obj, void *arg, int flags)
 	pj_strdup2_with_null(tdata->pool, &uri, contact->uri);
 	parsed = pjsip_parse_uri(tdata->pool, uri.ptr, uri.slen, PJSIP_PARSE_URI_AS_NAMEADDR);
 
+    ast_log(LOG_DEBUG, "TMA - 170");
 	if (parsed && (PJSIP_URI_SCHEME_IS_SIP(parsed) || PJSIP_URI_SCHEME_IS_SIPS(parsed))) {
 		pjsip_contact_hdr *hdr = pjsip_contact_hdr_create(tdata->pool);
 		hdr->uri = parsed;
@@ -739,6 +741,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 			break;
 		}
 
+        ast_log(LOG_DEBUG, "TMA - 170");
 		if (!PJSIP_URI_SCHEME_IS_SIP(contact_hdr->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact_hdr->uri)) {
 			/* This registrar only currently supports sip: and sips: URI schemes */
 			continue;
@@ -1092,6 +1095,7 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
 		 ast_pjsip_rdata_get_endpoint(rdata), ao2_cleanup);
 	struct ast_sip_aor *aor;
 	const char *aor_name;
+    ast_debug(2, "TMA - registrar_on_rx_request - START");
 
 	if (pjsip_method_cmp(&rdata->msg_info.msg->line.req.method, &pjsip_register_method) || !endpoint) {
 		return PJ_FALSE;
@@ -1106,6 +1110,7 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
 		return PJ_TRUE;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - 170");
 	if (!PJSIP_URI_SCHEME_IS_SIP(rdata->msg_info.to->uri) && !PJSIP_URI_SCHEME_IS_SIPS(rdata->msg_info.to->uri)) {
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 416, NULL, NULL, NULL);
 		ast_sip_report_failed_acl(endpoint, rdata, "registrar_invalid_uri_in_to_received");

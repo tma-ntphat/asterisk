@@ -146,6 +146,7 @@ static int extract_contact_addr(pjsip_contact_hdr *contact, struct ast_sockaddr 
 		*addrs = NULL;
 		return 0;
 	}
+    ast_log(LOG_DEBUG, "TMA - 4304");
 	if (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri)) {
 		*addrs = NULL;
 		return 0;
@@ -218,6 +219,7 @@ static pj_bool_t acl_on_rx_msg(pjsip_rx_data *rdata)
 			 ast_sip_get_sorcery(), SIP_SORCERY_ACL_TYPE,
 			 AST_RETRIEVE_FLAG_MULTIPLE | AST_RETRIEVE_FLAG_ALL, NULL), ao2_cleanup);
 	RAII_VAR(struct ast_sip_acl *, matched_acl, NULL, ao2_cleanup);
+    ast_debug(2, "TMA - acl_on_rx_msg - START");
 
 	if (!acls) {
 		ast_log(LOG_ERROR, "Unable to retrieve ACL sorcery data\n");
@@ -231,6 +233,7 @@ static pj_bool_t acl_on_rx_msg(pjsip_rx_data *rdata)
 		return PJ_TRUE;
 	}
 
+    ast_debug(2, "TMA - acl_on_rx_msg - END");
 	return PJ_FALSE;
 }
 

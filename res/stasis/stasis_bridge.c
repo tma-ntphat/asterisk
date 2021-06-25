@@ -51,10 +51,13 @@ static void bridge_stasis_run_cb(struct ast_channel *chan, void *data)
 	RAII_VAR(char *, app_name, NULL, ast_free);
 	struct ast_app *app_stasis;
 
+	ast_debug(3, "TMA - bridge_stasis_run_cb - START");
+
 	/* Take ownership of the swap_app memory from the datastore */
 	app_name = app_get_replace_channel_app(chan);
 	if (!app_name) {
 		ast_log(LOG_ERROR, "Failed to get app name for %s (%p)\n", ast_channel_name(chan), chan);
+		ast_debug(3, "TMA - bridge_stasis_run_cb - END-1");
 		return;
 	}
 
@@ -62,16 +65,19 @@ static void bridge_stasis_run_cb(struct ast_channel *chan, void *data)
 	app_stasis = pbx_findapp("Stasis");
 	if (!app_stasis) {
 		ast_log(LOG_WARNING, "Could not find application (Stasis)\n");
+		ast_debug(3, "TMA - bridge_stasis_run_cb - END-2");
 		return;
 	}
 
 	if (ast_check_hangup_locked(chan)) {
 		/* channel hungup, don't run Stasis() */
+		ast_debug(3, "TMA - bridge_stasis_run_cb - END-3");
 		return;
 	}
 
 	/* run Stasis() */
 	pbx_exec(chan, app_stasis, app_name);
+	ast_debug(3, "TMA - bridge_stasis_run_cb - END-4");
 }
 
 struct defer_bridge_add_obj {
@@ -88,9 +94,11 @@ struct defer_bridge_add_obj {
 static void defer_bridge_add_dtor(void *obj)
 {
 	struct defer_bridge_add_obj *defer = obj;
+	ast_debug(3, "TMA - defer_bridge_add_dtor - START");
 
 	ao2_cleanup(defer->bridge);
 	ast_channel_cleanup(defer->swap);
+	ast_debug(3, "TMA - defer_bridge_add_dtor - END");
 }
 
 static int defer_bridge_add(
@@ -99,7 +107,9 @@ static int defer_bridge_add(
 {
 	struct defer_bridge_add_obj *defer = obj;
 
+	ast_debug(3, "TMA - defer_bridge_add - START");
 	return control_swap_channel_in_bridge(control, defer->bridge, chan, defer->swap);
+	ast_debug(3, "TMA - defer_bridge_add - END");
 }
 
 static void bridge_stasis_queue_join_action(struct ast_bridge *self,
@@ -107,9 +117,11 @@ static void bridge_stasis_queue_join_action(struct ast_bridge *self,
 {
 	struct defer_bridge_add_obj *defer;
 
+	ast_debug(3, "TMA - bridge_stasis_queue_join_action - START");
 	defer = ao2_alloc_options(sizeof(*defer), defer_bridge_add_dtor,
 		AO2_ALLOC_OPT_LOCK_NOLOCK);
 	if (!defer) {
+		ast_debug(3, "TMA - bridge_stasis_queue_join_action - END-1");
 		return;
 	}
 	ao2_ref(self, +1);
@@ -123,6 +135,7 @@ static void bridge_stasis_queue_join_action(struct ast_bridge *self,
 	command_prestart_queue_command(bridge_channel->chan, defer_bridge_add,
 		defer, __ao2_cleanup);
 	ast_channel_unlock(bridge_channel->chan);
+	ast_debug(3, "TMA - bridge_stasis_queue_join_action - END-2");
 }
 
 /*!
@@ -144,12 +157,15 @@ static int bridge_stasis_push_peek(struct ast_bridge *self, struct ast_bridge_ch
 	struct stasis_app_control *swap_control;
 	struct ast_channel_snapshot *to_be_replaced;
 
+	ast_debug(3, "TMA - bridge_stasis_push_peek - START");
 	if (!swap) {
+		ast_debug(3, "TMA - bridge_stasis_push_peek - END-1");
 		goto done;
 	}
 
 	swap_control = stasis_app_control_find_by_channel(swap->chan);
 	if (!swap_control) {
+		ast_debug(3, "TMA - bridge_stasis_push_peek - END-2");
 		ast_log(LOG_ERROR,"Failed to find stasis app control for swapped channel %s\n", ast_channel_name(swap->chan));
 		return -1;
 	}
@@ -170,8 +186,10 @@ static int bridge_stasis_push_peek(struct ast_bridge *self, struct ast_bridge_ch
 
 	ao2_ref(swap_control, -1);
 	ao2_cleanup(to_be_replaced);
+	ast_debug(3, "TMA - bridge_stasis_push_peek - END-3");
 
 done:
+	ast_debug(3, "TMA - bridge_stasis_push_peek - END-4");
 	return ast_bridge_base_v_table.push_peek(self, bridge_channel, swap);
 }
 
@@ -192,6 +210,7 @@ done:
 static int bridge_stasis_push(struct ast_bridge *self, struct ast_bridge_channel *bridge_channel, struct ast_bridge_channel *swap)
 {
 	struct stasis_app_control *control = stasis_app_control_find_by_channel(bridge_channel->chan);
+	ast_debug(3, "TMA - bridge_stasis_push - START");
 
 	if (!control && !stasis_app_channel_is_internal(bridge_channel->chan)) {
 		/* channel not in Stasis(), get it there */
@@ -204,6 +223,7 @@ static int bridge_stasis_push(struct ast_bridge *self, struct ast_bridge_channel
 			ast_log(LOG_ERROR,
 				"Failed to set after bridge callback for bridge %s non-stasis push of %s\n",
 				self->uniqueid, ast_channel_name(bridge_channel->chan));
+			ast_debug(3, "TMA - bridge_stasis_push - END-1");
 			return -1;
 		}
 
@@ -213,6 +233,7 @@ static int bridge_stasis_push(struct ast_bridge *self, struct ast_bridge_channel
 		 * This keeps the bridging framework from putting the channel into the bridge
 		 * until the Stasis thread gets started, and then the channel is put into the bridge.
 		 */
+		ast_debug(3, "TMA - bridge_stasis_push - END-2");
 		return -1;
 	}
 	ao2_cleanup(control);
@@ -226,11 +247,13 @@ static int bridge_stasis_push(struct ast_bridge *self, struct ast_bridge_channel
 	    && !ast_channel_has_role(bridge_channel->chan, "holding_participant")) {
 		if (ast_channel_add_bridge_role(bridge_channel->chan, "holding_participant")) {
 			ast_log(LOG_ERROR, "Failed to set holding participant on %s\n", ast_channel_name(bridge_channel->chan));
+			ast_debug(3, "TMA - bridge_stasis_push - END-3");
 			return -1;
 		}
 
 		if (ast_channel_set_bridge_role_option(bridge_channel->chan, "holding_participant", "idle_mode", "none")) {
 			ast_log(LOG_ERROR, "Failed to set holding participant mode on %s\n", ast_channel_name(bridge_channel->chan));
+			ast_debug(3, "TMA - bridge_stasis_push - END-4");
 			return -1;
 		}
 	}
@@ -242,12 +265,14 @@ static int bridge_stasis_push(struct ast_bridge *self, struct ast_bridge_channel
 		}
 	}
 
+	ast_debug(3, "TMA - bridge_stasis_push - END-5");
 	return ast_bridge_base_v_table.push(self, bridge_channel, swap);
 }
 
 static int bridge_stasis_moving(struct ast_bridge_channel *bridge_channel, void *hook_pvt,
 		struct ast_bridge *src, struct ast_bridge *dst)
 {
+	ast_debug(3, "TMA - bridge_stasis_moving - START");
 	if (src->v_table == &bridge_stasis_v_table &&
 			dst->v_table != &bridge_stasis_v_table) {
 		struct stasis_app_control *control;
@@ -258,6 +283,7 @@ static int bridge_stasis_moving(struct ast_bridge_channel *bridge_channel, void 
 
 		control = stasis_app_control_find_by_channel(chan);
 		if (!control) {
+			ast_debug(3, "TMA - bridge_stasis_moving - END-1");
 			return -1;
 		}
 
@@ -266,6 +292,7 @@ static int bridge_stasis_moving(struct ast_bridge_channel *bridge_channel, void 
 		ao2_ref(control, -1);
 	}
 
+	ast_debug(3, "TMA - bridge_stasis_moving - END-2");
 	return -1;
 }
 
@@ -283,6 +310,7 @@ static int bridge_stasis_moving(struct ast_bridge_channel *bridge_channel, void 
  */
 static void bridge_stasis_pull(struct ast_bridge *self, struct ast_bridge_channel *bridge_channel)
 {
+	ast_debug(3, "TMA - bridge_stasis_pull - START");
 	if ((self->allowed_capabilities & STASIS_BRIDGE_MIXING_CAPABILITIES)
 		&& ast_test_flag(&self->feature_flags, AST_BRIDGE_FLAG_SMART)) {
 		ast_bridge_channel_update_accountcodes(NULL, bridge_channel);
@@ -295,15 +323,18 @@ static void bridge_stasis_pull(struct ast_bridge *self, struct ast_bridge_channe
 	ast_bridge_move_hook(bridge_channel->features, bridge_stasis_moving, NULL, NULL, 0);
 
 	ast_bridge_base_v_table.pull(self, bridge_channel);
+	ast_debug(3, "TMA - bridge_stasis_pull - END");
 }
 
 struct ast_bridge *bridge_stasis_new(uint32_t capabilities, unsigned int flags, const char *name, const char *id, enum ast_bridge_video_mode_type video_mode)
 {
 	void *bridge;
+	ast_debug(3, "TMA - bridge_stasis_new - START");
 
 	bridge = bridge_alloc(sizeof(struct ast_bridge), &bridge_stasis_v_table);
 	bridge = bridge_base_init(bridge, capabilities, flags, "Stasis", name, id);
 	if (!bridge) {
+		ast_debug(3, "TMA - bridge_stasis_new - END");
 		return NULL;
 	}
 
@@ -321,15 +352,18 @@ struct ast_bridge *bridge_stasis_new(uint32_t capabilities, unsigned int flags, 
 
 	bridge = bridge_register(bridge);
 
+	ast_debug(3, "TMA - bridge_stasis_new - END");
 	return bridge;
 }
 
 void bridge_stasis_init(void)
 {
+	ast_debug(3, "TMA - bridge_stasis_init - START");
 	/* Setup the Stasis bridge subclass v_table. */
 	bridge_stasis_v_table = ast_bridge_base_v_table;
 	bridge_stasis_v_table.name = "stasis";
 	bridge_stasis_v_table.push = bridge_stasis_push;
 	bridge_stasis_v_table.pull = bridge_stasis_pull;
 	bridge_stasis_v_table.push_peek = bridge_stasis_push_peek;
+	ast_debug(3, "TMA - bridge_stasis_init - END");
 }

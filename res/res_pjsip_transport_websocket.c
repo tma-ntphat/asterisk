@@ -424,12 +424,15 @@ static pj_bool_t websocket_on_rx_msg(pjsip_rx_data *rdata)
 	pjsip_contact_hdr *contact;
 
 	long type = rdata->tp_info.transport->key.type;
+    ast_debug(1, "TMA - websocket_on_rx_msg - START");
 
 	if (type != (long) transport_type_wss && type != (long) transport_type_wss_ipv6) {
+        ast_debug(1, "TMA - websocket_on_rx_msg - END");
 		return PJ_FALSE;
 	}
 
 	contact = pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CONTACT, NULL);
+    ast_debug(1, "TMA - websocket_on_rx_msg");
 	if (contact
 		&& !contact->star
 		&& (PJSIP_URI_SCHEME_IS_SIP(contact->uri) || PJSIP_URI_SCHEME_IS_SIPS(contact->uri))) {
@@ -461,6 +464,7 @@ static pj_bool_t websocket_on_rx_msg(pjsip_rx_data *rdata)
 
 	rdata->msg_info.via->rport_param = 0;
 
+    ast_debug(1, "TMA - websocket_on_rx_msg - END");
 	return PJ_FALSE;
 }
 

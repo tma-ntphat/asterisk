@@ -34,6 +34,7 @@ static int get_from_header(pjsip_rx_data *rdata, char *username, size_t username
 	pjsip_uri *from = rdata->msg_info.from->uri;
 	pjsip_sip_uri *sip_from;
 
+    ast_log(LOG_DEBUG, "TMA - 37");
 	if (!PJSIP_URI_SCHEME_IS_SIP(from) && !PJSIP_URI_SCHEME_IS_SIPS(from)) {
 		return -1;
 	}

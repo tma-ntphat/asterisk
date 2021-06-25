@@ -98,10 +98,12 @@ static int sip_available_transports[] = {
 static void sip_resolve_destroy(void *data)
 {
 	struct sip_resolve *resolve = data;
+	ast_debug(2, "TMA - sip_resolve_destroy - START");
 
 	AST_VECTOR_FREE(&resolve->resolving);
 	ao2_cleanup(resolve->queries);
 	ast_taskprocessor_unreference(resolve->serializer);
+	ast_debug(2, "TMA - sip_resolve_destroy - END");
 }
 
 /*!
@@ -116,6 +118,7 @@ static void sip_resolve_destroy(void *data)
 static int sip_transport_is_available(enum pjsip_transport_type_e transport)
 {
 	enum sip_resolver_transport resolver_transport;
+	ast_debug(2, "TMA - sip_transport_is_available - START");
 
 	if (transport == PJSIP_TRANSPORT_UDP) {
 		resolver_transport = SIP_RESOLVER_TRANSPORT_UDP;
@@ -130,9 +133,11 @@ static int sip_transport_is_available(enum pjsip_transport_type_e transport)
 	} else if (transport == PJSIP_TRANSPORT_TLS6) {
 		resolver_transport = SIP_RESOLVER_TRANSPORT_TLS6;
 	} else {
+		ast_debug(2, "TMA - sip_transport_is_available - END-1");
 		return 0;
 	}
 
+	ast_debug(2, "TMA - sip_transport_is_available - END-2");
 	return sip_available_transports[resolver_transport];
 }
 
@@ -157,10 +162,12 @@ static int sip_resolve_add(struct sip_resolve *resolve, const char *name, int rr
 		.transport = transport,
 		.port = port,
 	};
+	ast_debug(2, "TMA - sip_resolve_add - START");
 
 	if (!resolve->queries) {
 		resolve->queries = ast_dns_query_set_create();
 		if (!resolve->queries) {
+			ast_debug(2, "TMA - sip_resolve_add - END-1");
 			return -1;
 		}
 	}
@@ -170,12 +177,14 @@ static int sip_resolve_add(struct sip_resolve *resolve, const char *name, int rr
 	}
 
 	if (AST_VECTOR_APPEND(&resolve->resolving, target)) {
+		ast_debug(2, "TMA - sip_resolve_add - END-2");
 		return -1;
 	}
 
 	ast_debug(2, "[%p] Added target '%s' with record type '%d', transport '%s', and port '%d'\n",
 		resolve, name, rr_type, pjsip_transport_get_type_desc(transport), target.port);
 
+	ast_debug(2, "TMA - sip_resolve_add - END-3");
 	return ast_dns_query_set_add(resolve->queries, name, rr_type, rr_class);
 }
 
@@ -190,6 +199,7 @@ static int sip_resolve_add(struct sip_resolve *resolve, const char *name, int rr
 static int sip_resolve_invoke_user_callback(void *data)
 {
 	struct sip_resolve *resolve = data;
+	ast_debug(2, "TMA - sip_resolve_invoke_user_callback - START");
 
 	if (DEBUG_ATLEAST(2)) {
 		/* This includes space for the IP address, [, ], :, and the port */
@@ -209,6 +219,7 @@ static int sip_resolve_invoke_user_callback(void *data)
 
 	ao2_ref(resolve, -1);
 
+	ast_debug(2, "TMA - sip_resolve_invoke_user_callback - END");
 	return 0;
 }
 
@@ -227,7 +238,9 @@ static int sip_resolve_invoke_user_callback(void *data)
 static int sip_resolve_handle_naptr(struct sip_resolve *resolve, const struct ast_dns_record *record,
 	const char *service, pjsip_transport_type_e transport)
 {
+	ast_debug(2, "TMA - sip_resolve_handle_naptr - START");
 	if (strcasecmp(ast_dns_naptr_get_service(record), service)) {
+		ast_debug(2, "TMA - sip_resolve_handle_naptr - END-1");
 		return -1;
 	}
 
@@ -240,19 +253,23 @@ static int sip_resolve_handle_naptr(struct sip_resolve *resolve, const struct as
 		(!(transport & PJSIP_TRANSPORT_IPV6) && !sip_transport_is_available(transport | PJSIP_TRANSPORT_IPV6))) {
 		ast_debug(2, "[%p] NAPTR service %s skipped as transport is unavailable\n",
 			resolve, service);
+		ast_debug(2, "TMA - sip_resolve_handle_naptr - END-2");
 		return -1;
 	}
 
 	if (strcasecmp(ast_dns_naptr_get_flags(record), "s")) {
 		ast_debug(2, "[%p] NAPTR service %s received with unsupported flags '%s'\n",
 			resolve, service, ast_dns_naptr_get_flags(record));
+		ast_debug(2, "TMA - sip_resolve_handle_naptr - END-3");
 		return -1;
 	}
 
 	if (ast_strlen_zero(ast_dns_naptr_get_replacement(record))) {
+		ast_debug(2, "TMA - sip_resolve_handle_naptr - END-4");
 		return -1;
 	}
 
+	ast_debug(2, "TMA - sip_resolve_handle_naptr - END-5");
 	return sip_resolve_add(resolve, ast_dns_naptr_get_replacement(record), T_SRV, C_IN,
 		transport, 0);
 }
@@ -273,6 +290,7 @@ static void sip_resolve_callback(const struct ast_dns_query_set *query_set)
 	int idx, address_count = 0, have_naptr = 0, have_srv = 0;
 	unsigned short order = 0;
 	int strict_order = 0;
+	ast_debug(2, "TMA - sip_resolve_callback - START");
 
 	ast_debug(2, "[%p] All parallel queries completed\n", resolve);
 
@@ -415,6 +433,7 @@ static void sip_resolve_callback(const struct ast_dns_query_set *query_set)
 		ast_debug(2, "[%p] New queries added, performing parallel resolution again\n", resolve);
 		ast_dns_query_set_resolve_async(resolve->queries, sip_resolve_callback, resolve);
 		ao2_ref(queries, -1);
+		ast_debug(2, "TMA - sip_resolve_callback - END-1");
 		return;
 	}
 
@@ -427,6 +446,7 @@ static void sip_resolve_callback(const struct ast_dns_query_set *query_set)
 	}
 
 	ao2_ref(queries, -1);
+	ast_debug(2, "TMA - sip_resolve_callback - END-2");
 }
 
 /*!
@@ -443,15 +463,19 @@ static int sip_resolve_get_ip_addr_ver(const pj_str_t *host)
 {
 	pj_in_addr dummy;
 	pj_in6_addr dummy6;
+	ast_debug(2, "TMA - sip_resolve_get_ip_addr_ver - START");
 
 	if (pj_inet_aton(host, &dummy) > 0) {
+		ast_debug(2, "TMA - sip_resolve_get_ip_addr_ver - END-1");
 		return 4;
 	}
 
 	if (pj_inet_pton(pj_AF_INET6(), host, &dummy6) == PJ_SUCCESS) {
+		ast_debug(2, "TMA - sip_resolve_get_ip_addr_ver - END-2");
 		return 6;
 	}
 
+	ast_debug(2, "TMA - sip_resolve_get_ip_addr_ver - END-3");
 	return 0;
 }
 
@@ -473,6 +497,7 @@ static void sip_resolve(pjsip_resolver_t *resolver, pj_pool_t *pool, const pjsip
 	struct sip_resolve *resolve;
 	char host[NI_MAXHOST];
 	int res = 0;
+    ast_debug(2, "TMA - sip_resolve - START");
 
 	ast_copy_pj_str(host, &target->addr.host, sizeof(host));
 
@@ -524,29 +549,37 @@ static void sip_resolve(pjsip_resolver_t *resolver, pj_pool_t *pool, const pjsip
 
 		pj_sockaddr_set_port(&addresses.entry[0].addr, !target->addr.port ? pjsip_transport_get_default_port_for_type(type) : target->addr.port);
 
-		ast_debug(2, "Target '%s' is an IP address, skipping resolution\n", host);
+		ast_debug(2, "TMA - Target '%s' is an IP address, skipping resolution\n", host);
 
+		ast_debug(2, "TMA - before calling cb(PJ_SUCCESS, token, &addresses);");
 		cb(PJ_SUCCESS, token, &addresses);
+		ast_debug(2, "TMA - after calling cb(PJ_SUCCESS, token, &addresses);");
 
+        ast_debug(2, "TMA - sip_resolve - END - 1");
 		return;
 	}
 
 	resolve = ao2_alloc_options(sizeof(*resolve), sip_resolve_destroy, AO2_ALLOC_OPT_LOCK_NOLOCK);
 	if (!resolve) {
+		ast_debug(2, "TMA - before calling cb(PJ_ENOMEM, token, NULL);");
 		cb(PJ_ENOMEM, token, NULL);
+		ast_debug(2, "TMA - after calling cb(PJ_ENOMEM, token, NULL);");
+        ast_debug(2, "TMA - sip_resolve - END - 2");
 		return;
 	}
 
+		ast_debug(2, "TMA - resolve->callback = cb;");
 	resolve->callback = cb;
 	resolve->token = token;
 
 	if (AST_VECTOR_INIT(&resolve->resolving, 4)) {
 		ao2_ref(resolve, -1);
 		cb(PJ_ENOMEM, token, NULL);
+        ast_debug(2, "TMA - sip_resolve - END - 3");
 		return;
 	}
 
-	ast_debug(2, "[%p] Created resolution tracking for target '%s'\n", resolve, host);
+	ast_debug(2, "TMA -549 - [%p] Created resolution tracking for target '%s'\n", resolve, host);
 
 	/* If no port has been specified we can do NAPTR + SRV */
 	if (!target->addr.port) {
@@ -606,12 +639,14 @@ static void sip_resolve(pjsip_resolver_t *resolver, pj_pool_t *pool, const pjsip
 	if (res) {
 		ao2_ref(resolve, -1);
 		cb(PJ_ENOMEM, token, NULL);
+        ast_debug(2, "TMA - sip_resolve - END - 4");
 		return;
 	}
 	if (!resolve->queries) {
 		ast_debug(2, "[%p] No resolution queries for target '%s'\n", resolve, host);
 		ao2_ref(resolve, -1);
 		cb(PJLIB_UTIL_EDNSNOANSWERREC, token, NULL);
+        ast_debug(2, "TMA - sip_resolve - END - 5");
 		return;
 	}
 
@@ -621,6 +656,7 @@ static void sip_resolve(pjsip_resolver_t *resolver, pj_pool_t *pool, const pjsip
 	ast_dns_query_set_resolve_async(resolve->queries, sip_resolve_callback, resolve);
 
 	ao2_ref(resolve, -1);
+    ast_debug(2, "TMA - sip_resolve - END");
 }
 
 /*!
@@ -637,6 +673,7 @@ static void sip_check_transport(pj_pool_t *pool, pjsip_transport_type_e transpor
 {
 	pjsip_tpmgr_fla2_param prm;
 	enum sip_resolver_transport resolver_transport;
+	ast_debug(2, "TMA - sip_check_transport - START");
 
 	pjsip_tpmgr_fla2_param_default(&prm);
 	prm.tp_type = transport;
@@ -666,6 +703,7 @@ static void sip_check_transport(pj_pool_t *pool, pjsip_transport_type_e transpor
 		ast_verb(2, "'%s' is not an available SIP transport, disabling resolver support for it\n",
 			name);
 	}
+	ast_debug(2, "TMA - sip_check_transport - END");
 }
 
 /*! \brief External resolver implementation for PJSIP */
@@ -683,10 +721,12 @@ static pjsip_ext_resolver ext_resolver = {
 static int sip_replace_resolver(void *data)
 {
 	pj_pool_t *pool;
+	ast_debug(2, "TMA - sip_replace_resolver - START");
 
 
 	pool = pjsip_endpt_create_pool(ast_sip_get_pjsip_endpoint(), "Transport Availability", 256, 256);
 	if (!pool) {
+		ast_debug(2, "TMA - sip_replace_resolver - END");
 		return -1;
 	}
 
@@ -702,20 +742,25 @@ static int sip_replace_resolver(void *data)
 
 	/* Replace the PJSIP resolver with our own implementation */
 	pjsip_endpt_set_ext_resolver(ast_sip_get_pjsip_endpoint(), &ext_resolver);
+	ast_debug(2, "TMA - sip_replace_resolver - END");
 	return 0;
 }
 
 void ast_sip_initialize_resolver(void)
 {
+	ast_debug(2, "TMA - ast_sip_initialize_resolver - START");
 	/* Replace the existing PJSIP resolver with our own implementation */
 	ast_sip_push_task_wait_servant(NULL, sip_replace_resolver, NULL);
+	ast_debug(2, "TMA - ast_sip_initialize_resolver - END");
 }
 
 #else
 
 void ast_sip_initialize_resolver(void)
 {
+    ast_debug(2, "TMA - ast_sip_initialize_resolver - START");
 	/* External resolver support does not exist in the version of PJSIP in use */
+	ast_debug(2, "TMA - ast_sip_initialize_resolver - END");
 	ast_log(LOG_NOTICE, "The version of PJSIP in use does not support external resolvers, using PJSIP provided resolver\n");
 }
 

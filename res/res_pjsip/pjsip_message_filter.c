@@ -56,15 +56,18 @@ static pjsip_module filter_module_tsx = {
 static struct filter_message_restrictions *get_restrictions(pjsip_tx_data *tdata)
 {
 	struct filter_message_restrictions *restrictions;
+    ast_log(LOG_DEBUG, "TMA - get_restrictions - START");
 
 	restrictions = ast_sip_mod_data_get(tdata->mod_data, filter_module_tsx.id, MOD_DATA_RESTRICTIONS);
 	if (restrictions) {
+        ast_log(LOG_DEBUG, "TMA - get_restrictions - END - 1");
 		return restrictions;
 	}
 
 	restrictions = PJ_POOL_ALLOC_T(tdata->pool, struct filter_message_restrictions);
 	ast_sip_mod_data_set(tdata->pool, tdata->mod_data, filter_module_tsx.id, MOD_DATA_RESTRICTIONS, restrictions);
 
+    ast_log(LOG_DEBUG, "TMA - get_restrictions - END");
 	return restrictions;
 }
 
@@ -72,8 +75,10 @@ static struct filter_message_restrictions *get_restrictions(pjsip_tx_data *tdata
 static void filter_outgoing_message(struct ast_sip_endpoint *endpoint, struct ast_sip_contact *contact, struct pjsip_tx_data *tdata)
 {
 	struct filter_message_restrictions *restrictions = get_restrictions(tdata);
+    ast_log(LOG_DEBUG, "TMA - filter_outgoing_message - START");
 
 	restrictions->disallow_from_domain_modification = !ast_strlen_zero(endpoint->fromdomain);
+    ast_log(LOG_DEBUG, "TMA - filter_outgoing_message - END");
 }
 
 /*! \brief PJSIP Supplement for tagging messages with restrictions */
@@ -87,8 +92,10 @@ static struct ast_sip_supplement filter_supplement = {
 static void filter_session_outgoing_message(struct ast_sip_session *session, struct pjsip_tx_data *tdata)
 {
 	struct filter_message_restrictions *restrictions = get_restrictions(tdata);
+    ast_log(LOG_DEBUG, "TMA - filter_session_outgoing_message - START");
 
 	restrictions->disallow_from_domain_modification = !ast_strlen_zero(session->endpoint->fromdomain);
+    ast_log(LOG_DEBUG, "TMA - filter_session_outgoing_message - END");
 }
 
 /*! \brief PJSIP Session Supplement for tagging messages with restrictions */
@@ -105,8 +112,10 @@ static pjsip_transport *get_udp_transport(pj_str_t *address, int port)
 	struct ast_sip_transport_state *transport_state;
 	struct ao2_iterator iter;
 	pjsip_transport *sip_transport = NULL;
+    ast_log(LOG_DEBUG, "TMA - get_udp_transport - START");
 
 	if (!transport_states) {
+        ast_log(LOG_DEBUG, "TMA - get_udp_transport - END - 1");
 		return NULL;
 	}
 
@@ -124,6 +133,7 @@ static pjsip_transport *get_udp_transport(pj_str_t *address, int port)
 
 	ao2_ref(transport_states, -1);
 
+    ast_log(LOG_DEBUG, "TMA - get_udp_transport - END");
 	return sip_transport;
 }
 
@@ -131,21 +141,26 @@ static pjsip_transport *get_udp_transport(pj_str_t *address, int port)
 static int is_bound_any(pjsip_transport *transport)
 {
 	pj_uint32_t loop6[4] = {0, 0, 0, 0};
+    ast_log(LOG_DEBUG, "TMA - is_bound_any - START");
 
 	if ((transport->local_addr.addr.sa_family == pj_AF_INET() &&
 		transport->local_addr.ipv4.sin_addr.s_addr == PJ_INADDR_ANY) ||
 		(transport->local_addr.addr.sa_family == pj_AF_INET6() &&
 		!pj_memcmp(&transport->local_addr.ipv6.sin6_addr, loop6, sizeof(loop6)))) {
+        ast_log(LOG_DEBUG, "TMA - is_bound_any - END - 1");
 		return 1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - is_bound_any - END");
 	return 0;
 }
 
 /*! \brief Helper function which determines if the address within SDP should be rewritten */
 static int multihomed_rewrite_sdp(struct pjmedia_sdp_session *sdp)
 {
+    ast_log(LOG_DEBUG, "TMA - multihomed_rewrite_sdp - START");
 	if (!sdp->conn) {
+        ast_log(LOG_DEBUG, "TMA - multihomed_rewrite_sdp - END - 1");
 		return 0;
 	}
 
@@ -154,9 +169,11 @@ static int multihomed_rewrite_sdp(struct pjmedia_sdp_session *sdp)
 		ast_sip_get_host_ip_string(pj_AF_INET()))) ||
 		(!pj_strcmp2(&sdp->conn->addr_type, "IP6") && !pj_strcmp2(&sdp->conn->addr,
 		ast_sip_get_host_ip_string(pj_AF_INET6())))) {
+        ast_log(LOG_DEBUG, "TMA - multihomed_rewrite_sdp - END - 2");
 		return 1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - multihomed_rewrite_sdp - END");
 	return 0;
 }
 
@@ -168,10 +185,12 @@ static void print_sanitize_debug(char *msg, pjsip_uri_context_e context, pjsip_s
 #ifdef AST_DEVMODE
 	char hdrbuf[512];
 	int hdrbuf_len;
+//    ast_log(LOG_DEBUG, "TMA - print_sanitize_debug - START");
 
 	hdrbuf_len = pjsip_uri_print(context, uri, hdrbuf, 512);
 	hdrbuf[hdrbuf_len] = '\0';
 	ast_debug(2, "%s: %s\n", msg, hdrbuf);
+//    ast_log(LOG_DEBUG, "TMA - print_sanitize_debug - END");
 #endif
 }
 
@@ -188,6 +207,7 @@ static void FUNC_ATTRS sanitize_tdata(pjsip_tx_data *tdata)
 	pjsip_param *x_transport;
 	pjsip_sip_uri *uri;
 	pjsip_hdr *hdr;
+    ast_log(LOG_DEBUG, "TMA - sanitize_tdata - START");
 
 	if (tdata->msg->type == PJSIP_REQUEST_MSG) {
 		if (is_sip_uri(tdata->msg->line.req.uri)) {
@@ -220,6 +240,7 @@ static void FUNC_ATTRS sanitize_tdata(pjsip_tx_data *tdata)
 	}
 
 	pjsip_tx_data_invalidate_msg(tdata);
+    ast_log(LOG_DEBUG, "TMA - sanitize_tdata - END");
 }
 
 static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
@@ -230,25 +251,30 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 	pjsip_cseq_hdr *cseq;
 	pjsip_via_hdr *via;
 	pjsip_fromto_hdr *from;
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - START");
 
 	sanitize_tdata(tdata);
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - after sanitize_tdata");
 
 	/* Use the destination information to determine what local interface this message will go out on */
 	pjsip_tpmgr_fla2_param_default(&prm);
 	prm.tp_type = tdata->tp_info.transport->key.type;
 	pj_strset2(&prm.dst_host, tdata->tp_info.dst_name);
 	prm.local_if = PJ_TRUE;
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - determined what local interface this message will go out on");
 
 	/* If we can't get the local address use best effort and let it pass */
 	if (pjsip_tpmgr_find_local_addr2(pjsip_endpt_get_tpmgr(ast_sip_get_pjsip_endpoint()), tdata->pool, &prm) != PJ_SUCCESS) {
 		return PJ_SUCCESS;
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - got the local address");
 
 	/* For UDP we can have multiple transports so the port needs to be maintained */
 	if (tdata->tp_info.transport->key.type == PJSIP_TRANSPORT_UDP ||
 		tdata->tp_info.transport->key.type == PJSIP_TRANSPORT_UDP6) {
 		prm.ret_port = tdata->tp_info.transport->local_name.port;
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - set the port");
 
 	/* If the IP source differs from the existing transport see if we need to update it */
 	if (pj_strcmp(&prm.ret_addr, &tdata->tp_info.transport->local_name.host)) {
@@ -273,6 +299,7 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 		/* The transport chosen will deliver this but ensure it is updated with the right information */
 		pj_strassign(&prm.ret_addr, &tdata->tp_info.transport->local_name.host);
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - updated transport information");
 
 	/* If the message needs to be updated with new address do so */
 	if (tdata->msg->type == PJSIP_REQUEST_MSG || !(cseq = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CSEQ, NULL)) ||
@@ -298,6 +325,7 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 			pjsip_tx_data_invalidate_msg(tdata);
 		}
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - updated new address");
 
 	if (tdata->msg->type == PJSIP_REQUEST_MSG && (via = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_VIA, NULL))) {
 		pj_strassign(&via->sent_by.host, &prm.ret_addr);
@@ -305,6 +333,7 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 
 		pjsip_tx_data_invalidate_msg(tdata);
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - updated port");
 
 	if (tdata->msg->type == PJSIP_REQUEST_MSG && (from = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_FROM, NULL)) &&
 		(restrictions && !restrictions->disallow_from_domain_modification)) {
@@ -317,6 +346,7 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 			pjsip_tx_data_invalidate_msg(tdata);
 		}
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - get uri");
 
 	/* Update the SDP if it is present */
 	if (tdata->msg->body && ast_sip_is_content_type(&tdata->msg->body->content_type, "application", "sdp") &&
@@ -343,7 +373,9 @@ static pj_status_t filter_on_tx_message(pjsip_tx_data *tdata)
 
 		pjsip_tx_data_invalidate_msg(tdata);
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - updated the SDP");
 
+    ast_log(LOG_DEBUG, "TMA - filter_on_tx_message - END");
 	return PJ_SUCCESS;
 }
 
@@ -363,6 +395,7 @@ static void print_uri_debug(enum uri_type ut, pjsip_rx_data *rdata, pjsip_hdr *h
 	char *request_uri;
 	pjsip_uri_context_e context = PJSIP_URI_IN_OTHER;
 	char header_name[32];
+    ast_log(LOG_DEBUG, "TMA - print_uri_debug - START");
 
 	switch (ut) {
 	case(URI_TYPE_REQUEST):
@@ -398,6 +431,7 @@ static void print_uri_debug(enum uri_type ut, pjsip_rx_data *rdata, pjsip_hdr *h
 		(int)rdata->msg_info.msg->line.req.method.name.slen,
 		(int)rdata->msg_info.msg->line.req.method.name.slen,
 		rdata->msg_info.msg->line.req.method.name.ptr, request_uri);
+    ast_log(LOG_DEBUG, "TMA - print_uri_debug - END");
 #endif
 }
 
@@ -412,13 +446,16 @@ static void print_uri_debug(enum uri_type ut, pjsip_rx_data *rdata, pjsip_hdr *h
 static void remove_x_ast_params(pjsip_uri *header_uri){
 	pjsip_sip_uri *uri;
 	pjsip_param *param;
+//    ast_log(LOG_DEBUG, "TMA - remove_x_ast_params - START");
 
 	if (!header_uri) {
+//        ast_log(LOG_DEBUG, "TMA - remove_x_ast_params - END - 1");
 		return;
 	}
 
 	uri = pjsip_uri_get_uri(header_uri);
 	if (!uri) {
+//        ast_log(LOG_DEBUG, "TMA - remove_x_ast_params - END - 2");
 		return;
 	}
 
@@ -433,56 +470,74 @@ static void remove_x_ast_params(pjsip_uri *header_uri){
 		}
 		param = next;
 	}
+//    ast_log(LOG_DEBUG, "TMA - remove_x_ast_params - END");
 }
 
 static pj_bool_t on_rx_process_uris(pjsip_rx_data *rdata)
 {
 	pjsip_contact_hdr *contact = NULL;
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - START");
 
 	if (rdata->msg_info.msg->type != PJSIP_REQUEST_MSG) {
+		ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 1");
 		return PJ_FALSE;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - msg_info.msg->line.req - sip-%d sips-%d tel-%d", PJSIP_URI_SCHEME_IS_SIP(rdata->msg_info.msg->line.req.uri), PJSIP_URI_SCHEME_IS_SIPS(rdata->msg_info.msg->line.req.uri), PJSIP_URI_SCHEME_IS_TEL(rdata->msg_info.msg->line.req.uri));
 	if (!is_sip_uri(rdata->msg_info.msg->line.req.uri)) {
 		print_uri_debug(URI_TYPE_REQUEST, rdata, NULL);
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata,
 			PJSIP_SC_UNSUPPORTED_URI_SCHEME, NULL, NULL, NULL);
+		ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 2");
 		return PJ_TRUE;
 	}
 	remove_x_ast_params(rdata->msg_info.msg->line.req.uri);
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - checked in msg_info.msg");
 
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - msg_info.from - sip-%d sips-%d tel-%d", PJSIP_URI_SCHEME_IS_SIP(rdata->msg_info.from->uri), PJSIP_URI_SCHEME_IS_SIPS(rdata->msg_info.from->uri), PJSIP_URI_SCHEME_IS_TEL(rdata->msg_info.from->uri));
 	if (!is_sip_uri(rdata->msg_info.from->uri)) {
 		print_uri_debug(URI_TYPE_FROM, rdata, (pjsip_hdr *)rdata->msg_info.from);
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata,
 			PJSIP_SC_UNSUPPORTED_URI_SCHEME, NULL, NULL, NULL);
+		ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 3");
 		return PJ_TRUE;
 	}
 	remove_x_ast_params(rdata->msg_info.from->uri);
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - checked in msg_info.from");
 
-	if (!is_sip_uri(rdata->msg_info.to->uri)) {
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - msg_info.to - sip-%d sips-%d tel-%d", PJSIP_URI_SCHEME_IS_SIP(rdata->msg_info.to->uri), PJSIP_URI_SCHEME_IS_SIPS(rdata->msg_info.to->uri), PJSIP_URI_SCHEME_IS_TEL(rdata->msg_info.to->uri));
+    if (!is_sip_uri(rdata->msg_info.to->uri) && !PJSIP_URI_SCHEME_IS_TEL(rdata->msg_info.to->uri)) {
+	//if (!is_sip_uri(rdata->msg_info.to->uri)) {
 		print_uri_debug(URI_TYPE_TO, rdata, (pjsip_hdr *)rdata->msg_info.to);
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata,
 			PJSIP_SC_UNSUPPORTED_URI_SCHEME, NULL, NULL, NULL);
+		ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 4");
 		return PJ_TRUE;
 	}
 	remove_x_ast_params(rdata->msg_info.to->uri);
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - checked in msg_info.to");
 
 	contact = (pjsip_contact_hdr *) pjsip_msg_find_hdr(
 		rdata->msg_info.msg, PJSIP_H_CONTACT, NULL);
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - got contact-%d", !!contact);
 
 	if (!contact && pjsip_method_creates_dialog(&rdata->msg_info.msg->line.req.method)) {
 		/* A contact header is required for dialog creating methods */
 		static const pj_str_t missing_contact = { "Missing Contact header", 22 };
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 400,
 				&missing_contact, NULL, NULL);
+		ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 5");
 		return PJ_TRUE;
 	}
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - created contact");
 
 	while (contact) {
+        ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - contact->uri - sip-%d sips-%d tel-%d", PJSIP_URI_SCHEME_IS_SIP(contact->uri), PJSIP_URI_SCHEME_IS_SIPS(contact->uri), PJSIP_URI_SCHEME_IS_TEL(contact->uri));
 		if (!contact->star && !is_sip_uri(contact->uri)) {
 			print_uri_debug(URI_TYPE_CONTACT, rdata, (pjsip_hdr *)contact);
 			pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata,
 				PJSIP_SC_UNSUPPORTED_URI_SCHEME, NULL, NULL, NULL);
+			ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END - 6");
 			return PJ_TRUE;
 		}
 		remove_x_ast_params(contact->uri);
@@ -490,7 +545,9 @@ static pj_bool_t on_rx_process_uris(pjsip_rx_data *rdata)
 		contact = (pjsip_contact_hdr *) pjsip_msg_find_hdr(
 			rdata->msg_info.msg, PJSIP_H_CONTACT, contact->next);
 	}
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - checked in contact");
 
+	ast_log(LOG_DEBUG, "TMA - on_rx_process_uris - END");
 	return PJ_FALSE;
 }
 
@@ -501,14 +558,17 @@ static pj_bool_t on_rx_process_symmetric_transport(pjsip_rx_data *rdata)
 	const char *transport_id;
 	struct ast_sip_transport *transport;
 	pjsip_param *x_transport;
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_symmetric_transport - START");
 
 	if (rdata->msg_info.msg->type != PJSIP_REQUEST_MSG) {
+        ast_log(LOG_DEBUG, "TMA - on_rx_process_symmetric_transport - END - 1");
 		return PJ_FALSE;
 	}
 
 	contact = pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CONTACT, NULL);
 	if (!(contact && contact->uri
 		&& ast_begins_with(rdata->tp_info.transport->info, AST_SIP_X_AST_TXP ":"))) {
+        ast_log(LOG_DEBUG, "TMA - on_rx_process_symmetric_transport - END - 2");
 		return PJ_FALSE;
 	}
 
@@ -519,6 +579,7 @@ static pj_bool_t on_rx_process_symmetric_transport(pjsip_rx_data *rdata)
 
 	if (!(transport && transport->symmetric_transport)) {
 		ao2_cleanup(transport);
+        ast_log(LOG_DEBUG, "TMA - on_rx_process_symmetric_transport - END - 3");
 		return PJ_FALSE;
 	}
 	ao2_cleanup(transport);
@@ -534,50 +595,69 @@ static pj_bool_t on_rx_process_symmetric_transport(pjsip_rx_data *rdata)
 		rdata->msg_info.msg->line.req.method.name.ptr,
 		(int)uri->host.slen, uri->host.ptr, uri->port);
 
+    ast_log(LOG_DEBUG, "TMA - on_rx_process_symmetric_transport - END");
 	return PJ_FALSE;
 }
 
 static pj_bool_t filter_on_rx_message(pjsip_rx_data *rdata)
 {
 	pj_bool_t rc;
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - START");
 
 	rc = on_rx_process_uris(rdata);
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - on_rx_process_uris-%d", rc);
 	if (rc == PJ_TRUE) {
+        ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - END - 1");
 		return rc;
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - checked uris in rdata");
 
 	rc = on_rx_process_symmetric_transport(rdata);
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - on_rx_process_symmetric_transport-%d", rc);
 	if (rc == PJ_TRUE) {
+        ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - END - 2");
 		return rc;
 	}
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - on_rx_process_symmetric_transport with rdata");
 
+    ast_log(LOG_DEBUG, "TMA - filter_on_rx_message - END");
 	return PJ_FALSE;
 }
 
 void ast_res_pjsip_cleanup_message_filter(void)
 {
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_cleanup_message_filter - START");
 	ast_sip_unregister_service(&filter_module_tsx);
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_cleanup_message_filter - unregistered service filter_module_tsx");
 	ast_sip_unregister_service(&filter_module_transport);
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_cleanup_message_filter - unregistered service filter_module_transport");
 	ast_sip_unregister_supplement(&filter_supplement);
 	ast_sip_session_unregister_supplement(&filter_session_supplement);
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_cleanup_message_filter - END");
 }
 
 int ast_res_pjsip_init_message_filter(void)
 {
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - START");
 	ast_sip_session_register_supplement(&filter_session_supplement);
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - registered supplement filter_session_supplement");
 	ast_sip_register_supplement(&filter_supplement);
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - registered supplement filter_supplement");
 
 	if (ast_sip_register_service(&filter_module_transport)) {
 		ast_log(LOG_ERROR, "Could not register message filter module for incoming and outgoing requests\n");
 		ast_res_pjsip_cleanup_message_filter();
 		return -1;
 	}
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - registered service filter_module_transport");
 
 	if (ast_sip_register_service(&filter_module_tsx)) {
 		ast_log(LOG_ERROR, "Could not register message filter module for incoming and outgoing requests\n");
 		ast_res_pjsip_cleanup_message_filter();
 		return -1;
 	}
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - registered service filter_module_tsx");
 
+    ast_log(LOG_DEBUG, "TMA - ast_res_pjsip_init_message_filter - END");
 	return 0;
 }

@@ -181,6 +181,7 @@ static int rewrite_contact(pjsip_rx_data *rdata, pjsip_dialog *dlg)
 	pjsip_contact_hdr *contact;
 
 	contact = pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CONTACT, NULL);
+    ast_log(LOG_DEBUG, "TMA - 184");
 	if (contact && !contact->star && (PJSIP_URI_SCHEME_IS_SIP(contact->uri) || PJSIP_URI_SCHEME_IS_SIPS(contact->uri))) {
 		pjsip_sip_uri *uri = pjsip_uri_get_uri(contact->uri);
 
@@ -229,6 +230,7 @@ static pj_bool_t nat_on_rx_message(pjsip_rx_data *rdata)
 {
 	pj_bool_t res;
 	struct ast_sip_endpoint *endpoint;
+    ast_debug(2, "TMA - nat_on_rx_message - START");
 
 	endpoint = ast_pjsip_rdata_get_endpoint(rdata);
 	res = handle_rx_message(endpoint, rdata);
@@ -275,6 +277,7 @@ static pjsip_sip_uri *nat_get_contact_sip_uri(pjsip_tx_data *tdata)
 {
 	pjsip_contact_hdr *contact = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CONTACT, NULL);
 
+    ast_log(LOG_DEBUG, "TMA - 278");
 	if (!contact || (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri))) {
 		return NULL;
 	}
@@ -476,10 +479,12 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 
 static pj_status_t nat_on_tx_message(pjsip_tx_data *tdata) {
 	pj_status_t rc;
+    ast_debug(2, "TMA - nat_on_tx_message - START");
 
 	rc = process_nat(tdata);
 	restore_orig_contact_host(tdata);
 
+    ast_debug(2, "TMA - nat_on_tx_message - END");
 	return rc;
 }
 

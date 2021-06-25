@@ -2736,6 +2736,7 @@ static pj_bool_t session_reinvite_on_rx_request(pjsip_rx_data *rdata)
 	RAII_VAR(struct ast_sip_session *, session, NULL, ao2_cleanup);
 	pjsip_rdata_sdp_info *sdp_info;
 	int deferred;
+    ast_debug(3, "TMA - session_reinvite_on_rx_request - START");
 
 	if (rdata->msg_info.msg->line.req.method.id != PJSIP_INVITE_METHOD ||
 		!(dlg = pjsip_ua_find_dialog(&rdata->msg_info.cid->id, &rdata->msg_info.to->tag, &rdata->msg_info.from->tag, PJ_FALSE)) ||
@@ -3235,6 +3236,7 @@ static pj_bool_t outbound_invite_auth(pjsip_rx_data *rdata)
 	pjsip_inv_session *inv;
 	pjsip_tx_data *tdata;
 	struct ast_sip_session *session;
+    ast_debug(3, "TMA - outbound_invite_auth - START");
 
 	if (rdata->msg_info.msg->line.status.code != 401
 		&& rdata->msg_info.msg->line.status.code != 407) {
@@ -3670,6 +3672,7 @@ static enum sip_get_destination_result get_destination(struct ast_sip_session *s
 	struct ast_features_pickup_config *pickup_cfg;
 	const char *pickupexten;
 
+    ast_log(LOG_DEBUG, "TMA - 3673");
 	if (!PJSIP_URI_SCHEME_IS_SIP(ruri) && !PJSIP_URI_SCHEME_IS_SIPS(ruri)) {
 		return SIP_GET_DEST_UNSUPPORTED_URI;
 	}
@@ -4168,6 +4171,7 @@ static void session_on_tsx_state(pjsip_transaction *tsx, pjsip_event *e)
 	struct ast_sip_session *session = (inv_session ? inv_session->mod_data[session_module.id] : NULL);
 	SCOPE_ENTER(1, "%s TSX State: %s  Inv State: %s\n", ast_sip_session_get_name(session),
 			pjsip_tsx_state_str(tsx->state), inv_session ? pjsip_inv_state_name(inv_session->state) : "unknown");
+    ast_debug(3, "TMA - session_on_tsx_state - START");
 
 	if (session) {
 		ast_trace(2, "Topology: Pending: %s  Active: %s\n",
@@ -4191,6 +4195,7 @@ static pj_bool_t session_on_rx_response(pjsip_rx_data *rdata)
 	struct ast_sip_session *session = (inv_session ? inv_session->mod_data[session_module.id] : NULL);
 	SCOPE_ENTER(1, "%s Method: %.*s Status: %d\n", ast_sip_session_get_name(session),
 		(int)rdata->msg_info.cseq->method.name.slen, rdata->msg_info.cseq->method.name.ptr, status.code);
+    ast_debug(3, "TMA - session_on_rx_response - START");
 
 	SCOPE_EXIT_RTN_VALUE(PJ_FALSE);
 }
@@ -4223,6 +4228,7 @@ static pj_bool_t session_on_rx_request(pjsip_rx_data *rdata)
 	int res = TRACE_ATLEAST(1) ? pjsip_uri_print(PJSIP_URI_IN_REQ_URI, rdata->msg_info.msg->line.req.uri, req_uri, 256) : 0;
 	SCOPE_ENTER(1, "%s Request: %.*s %s\n", ast_sip_session_get_name(session),
 		(int) pj_strlen(&req.method.name), pj_strbuf(&req.method.name), res ? req_uri : "");
+    ast_debug(3, "TMA - session_on_rx_request - START");
 
 	switch (req.method.id) {
 	case PJSIP_INVITE_METHOD:
@@ -5410,6 +5416,7 @@ static pjsip_redirect_op session_inv_on_redirected(pjsip_inv_session *inv, const
 		return PJSIP_REDIRECT_ACCEPT;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - 5413");
 	if (!PJSIP_URI_SCHEME_IS_SIP(target) && !PJSIP_URI_SCHEME_IS_SIPS(target)) {
 		return PJSIP_REDIRECT_STOP;
 	}

@@ -501,6 +501,7 @@ static struct pjsip_param *get_uri_option_line(const void *uri)
 	pjsip_sip_uri *pjuri;
 	static const pj_str_t LINE_STR = { "line", 4 };
 
+    ast_log(LOG_DEBUG, "TMA - 504");
 	if (!PJSIP_URI_SCHEME_IS_SIP(uri) && !PJSIP_URI_SCHEME_IS_SIPS(uri)) {
 		return NULL;
 	}
@@ -1396,6 +1397,7 @@ static int sip_dialog_create_contact(pj_pool_t *pool, pj_str_t *contact, const c
 
 	pj_strdup_with_null(pool, &tmp, target);
 
+    ast_log(LOG_DEBUG, "TMA - 1399");
 	if (!(uri = pjsip_parse_uri(pool, tmp.ptr, tmp.slen, 0)) ||
 	    (!PJSIP_URI_SCHEME_IS_SIP(uri) && !PJSIP_URI_SCHEME_IS_SIPS(uri))) {
 		return -1;

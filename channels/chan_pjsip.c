@@ -81,6 +81,7 @@ static unsigned int chan_idx;
 
 static void chan_pjsip_pvt_dtor(void *obj)
 {
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_pvt_dtor - START/END");
 }
 
 /* \brief Asterisk core interaction functions */
@@ -174,8 +175,10 @@ static enum ast_rtp_glue_result chan_pjsip_get_rtp_peer(struct ast_channel *chan
 	struct ast_sip_endpoint *endpoint;
 	struct ast_datastore *datastore;
 	struct ast_sip_session_media *media;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - START");
 
 	if (!channel || !channel->session) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END - 1");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
@@ -185,12 +188,14 @@ static enum ast_rtp_glue_result chan_pjsip_get_rtp_peer(struct ast_channel *chan
 	 */
 	media = channel->session->active_media_state->default_session[AST_MEDIA_TYPE_AUDIO];
 	if (!media || !media->rtp) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END - 2");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
 	datastore = ast_sip_session_get_datastore(channel->session, "t38");
 	if (datastore) {
 		ao2_ref(datastore, -1);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END - 3");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
@@ -201,13 +206,16 @@ static enum ast_rtp_glue_result chan_pjsip_get_rtp_peer(struct ast_channel *chan
 
 	ast_assert(endpoint != NULL);
 	if (endpoint->media.rtp.encryption != AST_SIP_MEDIA_ENCRYPT_NONE) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END - 4");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
 	if (endpoint->media.direct_media.enabled) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END - 5");
 		return AST_RTP_GLUE_RESULT_REMOTE;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_rtp_peer - END");
 	return AST_RTP_GLUE_RESULT_LOCAL;
 }
 
@@ -217,13 +225,16 @@ static enum ast_rtp_glue_result chan_pjsip_get_vrtp_peer(struct ast_channel *cha
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(chan);
 	struct ast_sip_endpoint *endpoint;
 	struct ast_sip_session_media *media;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_vrtp_peer - START");
 
 	if (!channel || !channel->session) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_vrtp_peer - END - 1");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
 	media = channel->session->active_media_state->default_session[AST_MEDIA_TYPE_VIDEO];
 	if (!media || !media->rtp) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_vrtp_peer - END - 2");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
@@ -234,9 +245,11 @@ static enum ast_rtp_glue_result chan_pjsip_get_vrtp_peer(struct ast_channel *cha
 
 	ast_assert(endpoint != NULL);
 	if (endpoint->media.rtp.encryption != AST_SIP_MEDIA_ENCRYPT_NONE) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_vrtp_peer - END - 3");
 		return AST_RTP_GLUE_RESULT_FORBID;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_vrtp_peer - END");
 	return AST_RTP_GLUE_RESULT_LOCAL;
 }
 
@@ -245,7 +258,9 @@ static void chan_pjsip_get_codec(struct ast_channel *chan, struct ast_format_cap
 {
 	SCOPE_ENTER(1, "%s Native formats %s\n", ast_channel_name(chan),
 		ast_str_tmp(AST_FORMAT_CAP_NAMES_LEN, ast_format_cap_get_names(ast_channel_nativeformats(chan), &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_codec - START");
 	ast_format_cap_append_from_cap(result, ast_channel_nativeformats(chan), AST_MEDIA_TYPE_UNKNOWN);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_codec - END");
 	SCOPE_EXIT_RTN();
 }
 
@@ -253,7 +268,9 @@ static void chan_pjsip_get_codec(struct ast_channel *chan, struct ast_format_cap
 static void transport_info_destroy(void *obj)
 {
 	struct transport_info_data *data = obj;
+    ast_log(LOG_DEBUG, "TMA - transport_info_destroy - START");
 	ast_free(data);
+    ast_log(LOG_DEBUG, "TMA - transport_info_destroy - END");
 }
 
 /*! \brief Datastore used to store local/remote addresses for the
@@ -268,14 +285,17 @@ static struct ast_datastore_info direct_media_mitigation_info = { };
 static int direct_media_mitigate_glare(struct ast_sip_session *session)
 {
 	RAII_VAR(struct ast_datastore *, datastore, NULL, ao2_cleanup);
+    ast_log(LOG_DEBUG, "TMA - direct_media_mitigate_glare - START");
 
 	if (session->endpoint->media.direct_media.glare_mitigation ==
 			AST_SIP_DIRECT_MEDIA_GLARE_MITIGATION_NONE) {
+        ast_log(LOG_DEBUG, "TMA - direct_media_mitigate_glare - END - 1");
 		return 0;
 	}
 
 	datastore = ast_sip_session_get_datastore(session, "direct_media_glare_mitigation");
 	if (!datastore) {
+        ast_log(LOG_DEBUG, "TMA - direct_media_mitigate_glare - END - 2");
 		return 0;
 	}
 
@@ -288,9 +308,11 @@ static int direct_media_mitigate_glare(struct ast_sip_session *session)
 			(session->endpoint->media.direct_media.glare_mitigation ==
 			AST_SIP_DIRECT_MEDIA_GLARE_MITIGATION_INCOMING &&
 			session->inv_session->role == PJSIP_ROLE_UAS)) {
+        ast_log(LOG_DEBUG, "TMA - direct_media_mitigate_glare - END - 3");
 		return 1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - direct_media_mitigate_glare - END");
 	return 0;
 }
 
@@ -298,6 +320,7 @@ static int direct_media_mitigate_glare(struct ast_sip_session *session)
 static int rtp_find_rtcp_fd_position(struct ast_sip_session *session, struct ast_rtp_instance *rtp)
 {
 	int index;
+    ast_log(LOG_DEBUG, "TMA - rtp_find_rtcp_fd_position - START");
 
 	for (index = 0; index < AST_VECTOR_SIZE(&session->active_media_state->read_callbacks); ++index) {
 		struct ast_sip_session_media_read_callback_state *callback_state =
@@ -307,9 +330,11 @@ static int rtp_find_rtcp_fd_position(struct ast_sip_session *session, struct ast
 			continue;
 		}
 
+        ast_log(LOG_DEBUG, "TMA - rtp_find_rtcp_fd_position - END - 1");
 		return index;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - rtp_find_rtcp_fd_position - END");
 	return -1;
 }
 
@@ -320,6 +345,7 @@ static int check_for_rtp_changes(struct ast_channel *chan, struct ast_rtp_instan
 		struct ast_sip_session_media *media, struct ast_sip_session *session)
 {
 	int changed = 0, position = -1;
+    ast_log(LOG_DEBUG, "TMA - check_for_rtp_changes - START");
 
 	if (media->rtp) {
 		position = rtp_find_rtcp_fd_position(session, media->rtp);
@@ -352,6 +378,7 @@ static int check_for_rtp_changes(struct ast_channel *chan, struct ast_rtp_instan
 		}
 	}
 
+    ast_log(LOG_DEBUG, "TMA - check_for_rtp_changes - END");
 	return changed;
 }
 
@@ -366,12 +393,14 @@ struct rtp_direct_media_data {
 static void rtp_direct_media_data_destroy(void *data)
 {
 	struct rtp_direct_media_data *cdata = data;
+    ast_log(LOG_DEBUG, "TMA - rtp_direct_media_data_destroy - START");
 
 	ao2_cleanup(cdata->session);
 	ao2_cleanup(cdata->cap);
 	ao2_cleanup(cdata->vrtp);
 	ao2_cleanup(cdata->rtp);
 	ao2_cleanup(cdata->chan);
+    ast_log(LOG_DEBUG, "TMA - rtp_direct_media_data_destroy - END");
 }
 
 static struct rtp_direct_media_data *rtp_direct_media_data_create(
@@ -379,8 +408,10 @@ static struct rtp_direct_media_data *rtp_direct_media_data_create(
 	const struct ast_format_cap *cap, struct ast_sip_session *session)
 {
 	struct rtp_direct_media_data *cdata = ao2_alloc(sizeof(*cdata), rtp_direct_media_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - rtp_direct_media_data_create - START");
 
 	if (!cdata) {
+        ast_log(LOG_DEBUG, "TMA - rtp_direct_media_data_create - END - 1");
 		return NULL;
 	}
 
@@ -390,6 +421,7 @@ static struct rtp_direct_media_data *rtp_direct_media_data_create(
 	cdata->cap = ao2_bump((struct ast_format_cap *)cap);
 	cdata->session = ao2_bump(session);
 
+    ast_log(LOG_DEBUG, "TMA - rtp_direct_media_data_create - END");
 	return cdata;
 }
 
@@ -400,6 +432,7 @@ static int send_direct_media_request(void *data)
 	struct ast_sip_session *session;
 	int changed = 0;
 	int res = 0;
+    ast_log(LOG_DEBUG, "TMA - send_direct_media_request - START");
 
 	/* XXX In an ideal world each media stream would be direct, but for now preserve behavior
 	 * and connect only the default media sessions for audio and video.
@@ -424,6 +457,7 @@ static int send_direct_media_request(void *data)
 	if (direct_media_mitigate_glare(cdata->session)) {
 		ast_debug(4, "Disregarding setting RTP on %s: mitigating re-INVITE glare\n", ast_channel_name(cdata->chan));
 		ao2_ref(cdata, -1);
+        ast_log(LOG_DEBUG, "TMA - send_direct_media_request - END - 1");
 		return 0;
 	}
 
@@ -441,6 +475,7 @@ static int send_direct_media_request(void *data)
 	}
 
 	ao2_ref(cdata, -1);
+    ast_log(LOG_DEBUG, "TMA - send_direct_media_request - END");
 	return res;
 }
 
@@ -457,20 +492,24 @@ static int chan_pjsip_set_rtp_peer(struct ast_channel *chan,
 	struct rtp_direct_media_data *cdata;
 	SCOPE_ENTER(1, "%s %s\n", ast_channel_name(chan),
 		ast_str_tmp(AST_FORMAT_CAP_NAMES_LEN, ast_format_cap_get_names(cap, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_set_rtp_peer - START");
 
 	/* Don't try to do any direct media shenanigans on early bridges */
 	if ((rtp || vrtp || tpeer) && !ast_channel_is_bridged(chan)) {
 		ast_debug(4, "Disregarding setting RTP on %s: channel is not bridged\n", ast_channel_name(chan));
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_set_rtp_peer - END - 1");
 		SCOPE_EXIT_RTN_VALUE(0, "Channel not bridged\n");
 	}
 
 	if (nat_active && session->endpoint->media.direct_media.disable_on_nat) {
 		ast_debug(4, "Disregarding setting RTP on %s: NAT is active\n", ast_channel_name(chan));
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_set_rtp_peer - END - 2");
 		SCOPE_EXIT_RTN_VALUE(0, "NAT is active\n");
 	}
 
 	cdata = rtp_direct_media_data_create(chan, rtp, vrtp, cap, session);
 	if (!cdata) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_set_rtp_peer - END - 3");
 		SCOPE_EXIT_RTN_VALUE(0);
 	}
 
@@ -479,6 +518,7 @@ static int chan_pjsip_set_rtp_peer(struct ast_channel *chan,
 		ao2_ref(cdata, -1);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_set_rtp_peer - END");
 	SCOPE_EXIT_RTN_VALUE(0);
 }
 
@@ -495,6 +535,7 @@ static void set_channel_on_rtp_instance(const struct ast_sip_session *session,
 	const char *channel_id)
 {
 	int i;
+    ast_log(LOG_DEBUG, "TMA - set_channel_on_rtp_instance - START");
 
 	for (i = 0; i < AST_VECTOR_SIZE(&session->active_media_state->sessions); ++i) {
 		struct ast_sip_session_media *session_media;
@@ -506,6 +547,7 @@ static void set_channel_on_rtp_instance(const struct ast_sip_session *session,
 
 		ast_rtp_instance_set_channel_id(session_media->rtp, channel_id);
 	}
+    ast_log(LOG_DEBUG, "TMA - set_channel_on_rtp_instance - END");
 }
 
 /*!
@@ -530,6 +572,7 @@ static int compatible_formats_exist(struct ast_stream_topology *top, struct ast_
 	SCOPE_ENTER(1, "Topology: %s Formats: %s\n",
 		ast_str_tmp(AST_FORMAT_CAP_NAMES_LEN, ast_stream_topology_to_str(top, &STR_TMP)),
 		ast_str_tmp(AST_FORMAT_CAP_NAMES_LEN, ast_format_cap_get_names(cap, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - compatible_formats_exist - START");
 
 	cap_from_top = ast_stream_topology_get_formats(top);
 
@@ -540,6 +583,7 @@ static int compatible_formats_exist(struct ast_stream_topology *top, struct ast_
 	res = ast_format_cap_iscompatible(cap_from_top, cap);
 	ao2_ref(cap_from_top, -1);
 
+    ast_log(LOG_DEBUG, "TMA - compatible_formats_exist - END");
 	SCOPE_EXIT_RTN_VALUE(res, "Compatible? %s\n", res ? "yes" : "no");
 }
 
@@ -553,8 +597,10 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 	struct ast_variable *var;
 	struct ast_stream_topology *topology;
 	SCOPE_ENTER(1, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - START");
 
 	if (!(pvt = ao2_alloc_options(sizeof(*pvt), chan_pjsip_pvt_dtor, AO2_ALLOC_OPT_LOCK_NOLOCK))) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END - 1");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't create pvt\n");
 	}
 
@@ -568,6 +614,7 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 		ast_sorcery_object_get_id(session->endpoint),
 		(unsigned) ast_atomic_fetchadd_int((int *) &chan_idx, +1));
 	if (!chan) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END - 2");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't create channel\n");
 	}
 
@@ -576,6 +623,7 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 	if (!(channel = ast_sip_channel_pvt_alloc(pvt, session))) {
 		ast_channel_unlock(chan);
 		ast_hangup(chan);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END - 3");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't create pvt channel\n");
 	}
 
@@ -587,6 +635,7 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 		if (!caps) {
 			ast_channel_unlock(chan);
 			ast_hangup(chan);
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END - 4");
 			SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't create caps\n");
 		}
 		ast_format_cap_append_from_cap(caps, session->endpoint->media.codecs, AST_MEDIA_TYPE_UNKNOWN);
@@ -601,6 +650,7 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 		ast_stream_topology_free(topology);
 		ast_channel_unlock(chan);
 		ast_hangup(chan);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END - 5");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't get caps or clone topology\n");
 	}
 
@@ -671,6 +721,7 @@ static struct ast_channel *chan_pjsip_new(struct ast_sip_session *session, int s
 
 	set_channel_on_rtp_instance(session, ast_channel_uniqueid(chan));
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_new - END");
 	SCOPE_EXIT_RTN_VALUE(chan);
 }
 
@@ -686,11 +737,13 @@ static int answer(void *data)
 	pjsip_tx_data *packet = NULL;
 	struct ast_sip_session *session = ans_data->session;
 	SCOPE_ENTER_TASK(1, ans_data->indent, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - answer - START");
 
 	if (session->inv_session->state == PJSIP_INV_STATE_DISCONNECTED) {
 		ast_log(LOG_ERROR, "Session already DISCONNECTED [reason=%d (%s)]\n",
 			session->inv_session->cause,
 			pjsip_get_status_text(session->inv_session->cause)->ptr);
+        ast_log(LOG_DEBUG, "TMA - answer - END - 1");
 		SCOPE_EXIT_RTN_VALUE(0, "Disconnected\n");
 	}
 
@@ -717,8 +770,10 @@ static int answer(void *data)
 		 * Return this value so we can distinguish between this
 		 * failure and the threadpool synchronous push failing.
 		 */
+        ast_log(LOG_DEBUG, "TMA - answer - END - 2");
 		SCOPE_EXIT_RTN_VALUE(-2, "pjproject failure\n");
 	}
+    ast_log(LOG_DEBUG, "TMA - answer - END");
 	SCOPE_EXIT_RTN_VALUE(0);
 }
 
@@ -730,8 +785,10 @@ static int chan_pjsip_answer(struct ast_channel *ast)
 	struct answer_data ans_data = { 0, };
 	int res;
 	SCOPE_ENTER(1, "%s\n", ast_channel_name(ast));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_answer - START");
 
 	if (ast_channel_state(ast) == AST_STATE_UP) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_answer - END - 1");
 		SCOPE_EXIT_RTN_VALUE(0, "Already up\n");
 		return 0;
 	}
@@ -753,11 +810,13 @@ static int chan_pjsip_answer(struct ast_channel *ast)
 		}
 		ao2_ref(session, -1);
 		ast_channel_lock(ast);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_answer - END - 2");
 		SCOPE_EXIT_RTN_VALUE(-1, "Couldn't push task\n");
 	}
 	ao2_ref(session, -1);
 	ast_channel_lock(ast);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_answer - END");
 	SCOPE_EXIT_RTN_VALUE(0);
 }
 
@@ -768,6 +827,7 @@ static struct ast_frame *chan_pjsip_cng_tone_detected(struct ast_channel *ast, s
 	const char *target_context;
 	int exists;
 	int dsp_features;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_cng_tone_detected - START");
 
 	dsp_features = ast_dsp_get_features(session->dsp);
 	dsp_features &= ~DSP_FEATURE_FAX_DETECT;
@@ -780,6 +840,7 @@ static struct ast_frame *chan_pjsip_cng_tone_detected(struct ast_channel *ast, s
 
 	/* If already executing in the fax extension don't do anything */
 	if (!strcmp(ast_channel_exten(ast), "fax")) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_cng_tone_detected - END - 1");
 		return f;
 	}
 
@@ -817,6 +878,7 @@ static struct ast_frame *chan_pjsip_cng_tone_detected(struct ast_channel *ast, s
 	 */
 	ast_channel_lock(ast);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_cng_tone_detected - END");
 	return f;
 }
 
@@ -826,7 +888,9 @@ static int is_compatible_format(struct ast_sip_session *session, struct ast_fram
 	struct ast_stream_topology *topology = session->active_media_state->topology;
 	struct ast_stream *stream = ast_stream_topology_get_stream(topology, f->stream_num);
 	const struct ast_format_cap *cap = ast_stream_get_formats(stream);
+    ast_log(LOG_DEBUG, "TMA - is_compatible_format - START");
 
+    ast_log(LOG_DEBUG, "TMA - is_compatible_format - END");
 	return ast_format_cap_iscompatible_format(cap, f->subclass.format) != AST_FORMAT_CMP_NOT_EQUAL;
 }
 
@@ -843,8 +907,10 @@ static struct ast_frame *chan_pjsip_read_stream(struct ast_channel *ast)
 	struct ast_frame *f;
 	int fdno = ast_channel_fdno(ast) - AST_EXTENDED_FDS;
 	struct ast_frame *cur;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - START");
 
 	if (fdno >= AST_VECTOR_SIZE(&session->active_media_state->read_callbacks)) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - END - 1");
 		return &ast_null_frame;
 	}
 
@@ -852,6 +918,7 @@ static struct ast_frame *chan_pjsip_read_stream(struct ast_channel *ast)
 	f = callback_state->read_callback(session, callback_state->session);
 
 	if (!f) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - END - 2");
 		return f;
 	}
 
@@ -862,6 +929,7 @@ static struct ast_frame *chan_pjsip_read_stream(struct ast_channel *ast)
 	}
 
 	if (!cur || callback_state->session != session->active_media_state->default_session[callback_state->session->type]) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - END - 2");
 		return f;
 	}
 
@@ -904,6 +972,7 @@ static struct ast_frame *chan_pjsip_read_stream(struct ast_channel *ast)
 		ast_debug(1, "Oooh, got a frame with format of %s on channel '%s' when it has not been negotiated\n",
 				ast_format_get_name(cur->subclass.format), ast_channel_name(ast));
 		ast_frfree(f);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - END - 4");
 		return &ast_null_frame;
 	}
 
@@ -943,6 +1012,7 @@ static struct ast_frame *chan_pjsip_read_stream(struct ast_channel *ast)
 		}
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_read_stream - END");
 	return f;
 }
 
@@ -952,6 +1022,7 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 	struct ast_sip_session *session = channel->session;
 	struct ast_sip_session_media *media = NULL;
 	int res = 0;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - START");
 
 	/* The core provides a guarantee that the stream will exist when we are called if stream_num is provided */
 	if (stream_num >= 0) {
@@ -964,10 +1035,12 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 	switch (frame->frametype) {
 	case AST_FRAME_VOICE:
 		if (!media) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 1");
 			return 0;
 		} else if (media->type != AST_MEDIA_TYPE_AUDIO) {
 			ast_debug(3, "Channel %s stream %d is of type '%s', not audio!\n",
 				ast_channel_name(ast), stream_num, ast_codec_media_type2str(media->type));
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 2");
 			return 0;
 		} else if (media == channel->session->active_media_state->default_session[AST_MEDIA_TYPE_AUDIO] &&
 			ast_format_cap_iscompatible_format(ast_channel_nativeformats(ast), frame->subclass.format) == AST_FORMAT_CMP_NOT_EQUAL) {
@@ -986,6 +1059,7 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 				ast_format_get_name(ast_channel_writeformat(ast)),
 				ast_format_get_name(ast_channel_rawwriteformat(ast)),
 				ast_translate_path_to_str(ast_channel_writetrans(ast), &write_transpath));
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 3");
 			return 0;
 		} else if (media->write_callback) {
 			res = media->write_callback(session, media, frame);
@@ -994,10 +1068,12 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 		break;
 	case AST_FRAME_VIDEO:
 		if (!media) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 4");
 			return 0;
 		} else if (media->type != AST_MEDIA_TYPE_VIDEO) {
 			ast_debug(3, "Channel %s stream %d is of type '%s', not video!\n",
 				ast_channel_name(ast), stream_num, ast_codec_media_type2str(media->type));
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 5");
 			return 0;
 		} else if (media->write_callback) {
 			res = media->write_callback(session, media, frame);
@@ -1005,10 +1081,12 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 		break;
 	case AST_FRAME_MODEM:
 		if (!media) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 6");
 			return 0;
 		} else if (media->type != AST_MEDIA_TYPE_IMAGE) {
 			ast_debug(3, "Channel %s stream %d is of type '%s', not image!\n",
 				ast_channel_name(ast), stream_num, ast_codec_media_type2str(media->type));
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 7");
 			return 0;
 		} else if (media->write_callback) {
 			res = media->write_callback(session, media, frame);
@@ -1019,10 +1097,12 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 	case AST_FRAME_RTCP:
 		/* We only support writing out feedback */
 		if (frame->subclass.integer != AST_RTP_RTCP_PSFB || !media) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 8");
 			return 0;
 		} else if (media->type != AST_MEDIA_TYPE_VIDEO) {
 			ast_debug(3, "Channel %s stream %d is of type '%s', not video! Unable to write RTCP feedback.\n",
 				ast_channel_name(ast), stream_num, ast_codec_media_type2str(media->type));
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END - 9");
 			return 0;
 		} else if (media->write_callback) {
 			res = media->write_callback(session, media, frame);
@@ -1033,11 +1113,13 @@ static int chan_pjsip_write_stream(struct ast_channel *ast, int stream_num, stru
 		break;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_write_stream - END");
 	return res;
 }
 
 static int chan_pjsip_write(struct ast_channel *ast, struct ast_frame *frame)
 {
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_write - START/END");
 	return chan_pjsip_write_stream(ast, -1, frame);
 }
 
@@ -1045,8 +1127,10 @@ static int chan_pjsip_write(struct ast_channel *ast, struct ast_frame *frame)
 static int chan_pjsip_fixup(struct ast_channel *oldchan, struct ast_channel *newchan)
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(newchan);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_fixup - START");
 
 	if (channel->session->channel != oldchan) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_fixup - END - 1");
 		return -1;
 	}
 
@@ -1059,6 +1143,7 @@ static int chan_pjsip_fixup(struct ast_channel *oldchan, struct ast_channel *new
 
 	set_channel_on_rtp_instance(channel->session, ast_channel_uniqueid(newchan));
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_fixup - END");
 	return 0;
 }
 
@@ -1066,6 +1151,7 @@ static int chan_pjsip_fixup(struct ast_channel *oldchan, struct ast_channel *new
 static int uid_hold_hash_fn(const void *obj, const int flags)
 {
 	const char *key = obj;
+    ast_log(LOG_DEBUG, "TMA - uid_hold_hash_fn - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_KEY:
@@ -1075,8 +1161,10 @@ static int uid_hold_hash_fn(const void *obj, const int flags)
 	default:
 		/* Hash can only work on something with a full key. */
 		ast_assert(0);
+            ast_log(LOG_DEBUG, "TMA - uid_hold_hash_fn - END - 1");
 		return 0;
 	}
+    ast_log(LOG_DEBUG, "TMA - uid_hold_hash_fn - END");
 	return ast_str_hash(key);
 }
 
@@ -1086,6 +1174,7 @@ static int uid_hold_sort_fn(const void *obj_left, const void *obj_right, const i
 	const char *left = obj_left;
 	const char *right = obj_right;
 	int cmp;
+    ast_log(LOG_DEBUG, "TMA - uid_hold_sort_fn - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_OBJECT:
@@ -1101,6 +1190,7 @@ static int uid_hold_sort_fn(const void *obj_left, const void *obj_right, const i
 		cmp = 0;
 		break;
 	}
+    ast_log(LOG_DEBUG, "TMA - uid_hold_sort_fn - END");
 	return cmp;
 }
 
@@ -1117,10 +1207,12 @@ static struct ao2_container *pjsip_uids_onhold;
 static int chan_pjsip_add_hold(const char *chan_uid)
 {
 	RAII_VAR(char *, hold_uid, NULL, ao2_cleanup);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_add_hold - START");
 
 	hold_uid = ao2_find(pjsip_uids_onhold, chan_uid, OBJ_SEARCH_KEY);
 	if (hold_uid) {
 		/* Device is already on hold. Nothing to do. */
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_add_hold - END - 1");
 		return 0;
 	}
 
@@ -1128,15 +1220,18 @@ static int chan_pjsip_add_hold(const char *chan_uid)
 	hold_uid = ao2_alloc_options(strlen(chan_uid) + 1, NULL,
 		AO2_ALLOC_OPT_LOCK_NOLOCK);
 	if (!hold_uid) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_add_hold - END - 2");
 		return -1;
 	}
 
 	ast_copy_string(hold_uid, chan_uid, strlen(chan_uid) + 1);
 
 	if (ao2_link(pjsip_uids_onhold, hold_uid) == 0) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_add_hold - END - 3");
 		return -1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_add_hold - END");
 	return 0;
 }
 
@@ -1147,7 +1242,9 @@ static int chan_pjsip_add_hold(const char *chan_uid)
  */
 static void chan_pjsip_remove_hold(const char *chan_uid)
 {
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_remove_hold - START");
 	ao2_find(pjsip_uids_onhold, chan_uid, OBJ_SEARCH_KEY | OBJ_UNLINK | OBJ_NODATA);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_remove_hold - END");
 }
 
 /*!
@@ -1161,12 +1258,15 @@ static void chan_pjsip_remove_hold(const char *chan_uid)
 static int chan_pjsip_get_hold(const char *chan_uid)
 {
 	RAII_VAR(char *, hold_uid, NULL, ao2_cleanup);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_hold - START");
 
 	hold_uid = ao2_find(pjsip_uids_onhold, chan_uid, OBJ_SEARCH_KEY);
 	if (!hold_uid) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_hold - END - 1");
 		return 0;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_hold - END");
 	return 1;
 }
 
@@ -1178,8 +1278,10 @@ static int chan_pjsip_devicestate(const char *data)
 	RAII_VAR(struct ast_endpoint_snapshot *, endpoint_snapshot, NULL, ao2_cleanup);
 	struct ast_devstate_aggregate aggregate;
 	int num, inuse = 0;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_devicestate - START");
 
 	if (!endpoint) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_devicestate - END - 1");
 		return AST_DEVICE_INVALID;
 	}
 
@@ -1187,6 +1289,7 @@ static int chan_pjsip_devicestate(const char *data)
 		ast_endpoint_get_resource(endpoint->persistent));
 
 	if (!endpoint_snapshot) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_devicestate - END - 2");
 		return AST_DEVICE_INVALID;
 	}
 
@@ -1197,6 +1300,7 @@ static int chan_pjsip_devicestate(const char *data)
 	}
 
 	if (!endpoint_snapshot->num_channels) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_devicestate - END - 3");
 		return state;
 	}
 
@@ -1230,6 +1334,7 @@ static int chan_pjsip_devicestate(const char *data)
 		state = ast_devstate_aggregate_result(&aggregate);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_devicestate - END");
 	return state;
 }
 
@@ -1239,8 +1344,10 @@ static int chan_pjsip_queryoption(struct ast_channel *ast, int option, void *dat
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	int res = -1;
 	enum ast_t38_state state = T38_STATE_UNAVAILABLE;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_queryoption - START");
 
 	if (!channel) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_queryoption - END - 1");
 		return -1;
 	}
 
@@ -1272,6 +1379,7 @@ static int chan_pjsip_queryoption(struct ast_channel *ast, int option, void *dat
 		break;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_queryoption - END");
 	return res;
 }
 
@@ -1279,13 +1387,16 @@ static const char *chan_pjsip_get_uniqueid(struct ast_channel *ast)
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	char *uniqueid = ast_threadstorage_get(&uniqueid_threadbuf, UNIQUEID_BUFSIZE);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_uniqueid - START");
 
 	if (!uniqueid) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_uniqueid - END - 1");
 		return "";
 	}
 
 	ast_copy_pj_str(uniqueid, &channel->session->inv_session->dlg->call_id->id, UNIQUEID_BUFSIZE);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_get_uniqueid - END");
 	return uniqueid;
 }
 
@@ -1300,23 +1411,28 @@ struct indicate_data {
 static void indicate_data_destroy(void *obj)
 {
 	struct indicate_data *ind_data = obj;
+    ast_log(LOG_DEBUG, "TMA - indicate_data_destroy - START");
 
 	ast_free(ind_data->frame_data);
 	ao2_ref(ind_data->session, -1);
+    ast_log(LOG_DEBUG, "TMA - indicate_data_destroy - END");
 }
 
 static struct indicate_data *indicate_data_alloc(struct ast_sip_session *session,
 		int condition, int response_code, const void *frame_data, size_t datalen)
 {
 	struct indicate_data *ind_data = ao2_alloc(sizeof(*ind_data), indicate_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - indicate_data_alloc - START");
 
 	if (!ind_data) {
+        ast_log(LOG_DEBUG, "TMA - indicate_data_alloc - END - 1");
 		return NULL;
 	}
 
 	ind_data->frame_data = ast_malloc(datalen);
 	if (!ind_data->frame_data) {
 		ao2_ref(ind_data, -1);
+        ast_log(LOG_DEBUG, "TMA - indicate_data_alloc - END - 2");
 		return NULL;
 	}
 
@@ -1327,6 +1443,7 @@ static struct indicate_data *indicate_data_alloc(struct ast_sip_session *session
 	ao2_ref(session, +1);
 	ind_data->session = session;
 
+    ast_log(LOG_DEBUG, "TMA - indicate_data_alloc - END");
 	return ind_data;
 }
 
@@ -1336,6 +1453,7 @@ static int indicate(void *data)
 	struct indicate_data *ind_data = data;
 	struct ast_sip_session *session = ind_data->session;
 	int response_code = ind_data->response_code;
+    ast_log(LOG_DEBUG, "TMA - indicate - START");
 
 	if ((session->inv_session->state != PJSIP_INV_STATE_DISCONNECTED) &&
 		(pjsip_inv_answer(session->inv_session, response_code, NULL, NULL, &packet) == PJ_SUCCESS)) {
@@ -1344,6 +1462,7 @@ static int indicate(void *data)
 
 	ao2_ref(ind_data, -1);
 
+    ast_log(LOG_DEBUG, "TMA - indicate - END");
 	return 0;
 }
 
@@ -1368,24 +1487,29 @@ static int transmit_info_with_vidupdate(void *data)
 
 	RAII_VAR(struct ast_sip_session *, session, data, ao2_cleanup);
 	struct pjsip_tx_data *tdata;
+    ast_log(LOG_DEBUG, "TMA - transmit_info_with_vidupdate - START");
 
 	if (session->inv_session->state == PJSIP_INV_STATE_DISCONNECTED) {
 		ast_log(LOG_ERROR, "Session already DISCONNECTED [reason=%d (%s)]\n",
 			session->inv_session->cause,
 			pjsip_get_status_text(session->inv_session->cause)->ptr);
+        ast_log(LOG_DEBUG, "TMA - transmit_info_with_vidupdate - END - 1");
 		return -1;
 	}
 
 	if (ast_sip_create_request("INFO", session->inv_session->dlg, session->endpoint, NULL, NULL, &tdata)) {
 		ast_log(LOG_ERROR, "Could not create text video update INFO request\n");
+        ast_log(LOG_DEBUG, "TMA - transmit_info_with_vidupdate - END - 2");
 		return -1;
 	}
 	if (ast_sip_add_body(tdata, &body)) {
 		ast_log(LOG_ERROR, "Could not add body to text video update INFO request\n");
+        ast_log(LOG_DEBUG, "TMA - transmit_info_with_vidupdate - END - 3");
 		return -1;
 	}
 	ast_sip_session_send_request(session, tdata);
 
+    ast_log(LOG_DEBUG, "TMA - transmit_info_with_vidupdate - END");
 	return 0;
 }
 
@@ -1403,9 +1527,11 @@ static int is_colp_update_allowed(struct ast_sip_session *session)
 {
 	struct ast_party_id connected_id;
 	int update_allowed = 0;
+    ast_log(LOG_DEBUG, "TMA - is_colp_update_allowed - START");
 
 	if (!session->endpoint->id.send_connected_line
 		|| (!session->endpoint->id.send_pai && !session->endpoint->id.send_rpid)) {
+        ast_log(LOG_DEBUG, "TMA - is_colp_update_allowed - END - 1");
 		return 0;
 	}
 
@@ -1422,6 +1548,7 @@ static int is_colp_update_allowed(struct ast_sip_session *session)
 	}
 	ast_channel_unlock(session->channel);
 
+    ast_log(LOG_DEBUG, "TMA - is_colp_update_allowed - END");
 	return update_allowed;
 }
 
@@ -1429,12 +1556,14 @@ static int is_colp_update_allowed(struct ast_sip_session *session)
 static int update_connected_line_information(void *data)
 {
 	struct ast_sip_session *session = data;
+    ast_log(LOG_DEBUG, "TMA - update_connected_line_information - START");
 
 	if (session->inv_session->state == PJSIP_INV_STATE_DISCONNECTED) {
 		ast_log(LOG_ERROR, "Session already DISCONNECTED [reason=%d (%s)]\n",
 			session->inv_session->cause,
 			pjsip_get_status_text(session->inv_session->cause)->ptr);
 		ao2_ref(session, -1);
+        ast_log(LOG_DEBUG, "TMA - update_connected_line_information - END - 1");
 		return -1;
 	}
 
@@ -1475,36 +1604,43 @@ static int update_connected_line_information(void *data)
 	}
 
 	ao2_ref(session, -1);
+    ast_log(LOG_DEBUG, "TMA - update_connected_line_information - END");
 	return 0;
 }
 
 /*! \brief Callback which changes the value of locally held on the media stream */
 static void local_hold_set_state(struct ast_sip_session_media *session_media, unsigned int held)
 {
+    ast_log(LOG_DEBUG, "TMA - local_hold_set_state - START");
 	if (session_media) {
 		session_media->locally_held = held;
 	}
+    ast_log(LOG_DEBUG, "TMA - local_hold_set_state - END");
 }
 
 /*! \brief Update local hold state and send a re-INVITE with the new SDP */
 static int remote_send_hold_refresh(struct ast_sip_session *session, unsigned int held)
 {
+    ast_log(LOG_DEBUG, "TMA - remote_send_hold_refresh - START");
 	AST_VECTOR_CALLBACK_VOID(&session->active_media_state->sessions, local_hold_set_state, held);
 	ast_sip_session_refresh(session, NULL, NULL, NULL, AST_SIP_SESSION_REFRESH_METHOD_INVITE, 1, NULL);
 	ao2_ref(session, -1);
 
+    ast_log(LOG_DEBUG, "TMA - remote_send_hold_refresh - END");
 	return 0;
 }
 
 /*! \brief Update local hold state to be held */
 static int remote_send_hold(void *data)
 {
+    ast_log(LOG_DEBUG, "TMA - remote_send_hold - START/END");
 	return remote_send_hold_refresh(data, 1);
 }
 
 /*! \brief Update local hold state to be unheld */
 static int remote_send_unhold(void *data)
 {
+    ast_log(LOG_DEBUG, "TMA - remote_send_unhold - START/END");
 	return remote_send_hold_refresh(data, 0);
 }
 
@@ -1515,19 +1651,23 @@ struct topology_change_refresh_data {
 
 static void topology_change_refresh_data_free(struct topology_change_refresh_data *refresh_data)
 {
+    ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_free - START");
 	ao2_cleanup(refresh_data->session);
 
 	ast_sip_session_media_state_free(refresh_data->media_state);
 	ast_free(refresh_data);
+    ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_free - END");
 }
 
 static struct topology_change_refresh_data *topology_change_refresh_data_alloc(
 	struct ast_sip_session *session, const struct ast_stream_topology *topology)
 {
 	struct topology_change_refresh_data *refresh_data;
+    ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_alloc - START");
 
 	refresh_data = ast_calloc(1, sizeof(*refresh_data));
 	if (!refresh_data) {
+        ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_alloc - END - 1");
 		return NULL;
 	}
 
@@ -1535,14 +1675,17 @@ static struct topology_change_refresh_data *topology_change_refresh_data_alloc(
 	refresh_data->media_state = ast_sip_session_media_state_alloc();
 	if (!refresh_data->media_state) {
 		topology_change_refresh_data_free(refresh_data);
+        ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_alloc - END - 2");
 		return NULL;
 	}
 	refresh_data->media_state->topology = ast_stream_topology_clone(topology);
 	if (!refresh_data->media_state->topology) {
 		topology_change_refresh_data_free(refresh_data);
+        ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_alloc - END - 3");
 		return NULL;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - topology_change_refresh_data_alloc - END");
 	return refresh_data;
 }
 
@@ -1552,6 +1695,7 @@ static int on_topology_change_response(struct ast_sip_session *session, pjsip_rx
 		rdata->msg_info.msg->line.status.code,
 		ast_str_tmp(256, ast_stream_topology_to_str(session->pending_media_state->topology, &STR_TMP)),
 		ast_str_tmp(256, ast_stream_topology_to_str(session->active_media_state->topology, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - on_topology_change_response - START");
 
 
 	if (PJSIP_IS_STATUS_IN_CLASS(rdata->msg_info.msg->line.status.code, 200)) {
@@ -1560,15 +1704,19 @@ static int on_topology_change_response(struct ast_sip_session *session, pjsip_rx
 		 */
 		if (session->channel) {
 			ast_queue_control(session->channel, AST_CONTROL_STREAM_TOPOLOGY_CHANGED);
+            ast_log(LOG_DEBUG, "TMA - on_topology_change_response - END - 1");
 			SCOPE_EXIT_RTN_VALUE(0, "%s: Queued topology change frame\n", ast_sip_session_get_name(session));
 		}
+        ast_log(LOG_DEBUG, "TMA - on_topology_change_response - END - 2");
 		SCOPE_EXIT_RTN_VALUE(0, "%s: No channel?  Can't queue topology change frame\n", ast_sip_session_get_name(session));
 	} else if (300 <= rdata->msg_info.msg->line.status.code) {
 		/* The topology change failed, so drop the current pending media state */
 		ast_sip_session_media_state_reset(session->pending_media_state);
+        ast_log(LOG_DEBUG, "TMA - on_topology_change_response - END - 3");
 		SCOPE_EXIT_RTN_VALUE(0, "%s: response code > 300.  Resetting pending media state\n", ast_sip_session_get_name(session));
 	}
 
+    ast_log(LOG_DEBUG, "TMA - on_topology_change_response - END");
 	SCOPE_EXIT_RTN_VALUE(0, "%s: Nothing to do\n", ast_sip_session_get_name(session));
 }
 
@@ -1579,6 +1727,7 @@ static int send_topology_change_refresh(void *data)
 	int ret;
 	SCOPE_ENTER(3, "%s: %s\n", ast_sip_session_get_name(session),
 		ast_str_tmp(256, ast_stream_topology_to_str(refresh_data->media_state->topology, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - send_topology_change_refresh - START");
 
 
 	ret = ast_sip_session_refresh(session, NULL, NULL, on_topology_change_response,
@@ -1586,6 +1735,7 @@ static int send_topology_change_refresh(void *data)
 	refresh_data->media_state = NULL;
 	topology_change_refresh_data_free(refresh_data);
 
+    ast_log(LOG_DEBUG, "TMA - send_topology_change_refresh - END");
 	SCOPE_EXIT_RTN_VALUE(ret, "%s\n", ast_sip_session_get_name(session));
 }
 
@@ -1595,9 +1745,11 @@ static int handle_topology_request_change(struct ast_sip_session *session,
 	struct topology_change_refresh_data *refresh_data;
 	int res;
 	SCOPE_ENTER(1);
+    ast_log(LOG_DEBUG, "TMA - handle_topology_request_change - START");
 
 	refresh_data = topology_change_refresh_data_alloc(session, proposed);
 	if (!refresh_data) {
+        ast_log(LOG_DEBUG, "TMA - handle_topology_request_change - END - 1");
 		SCOPE_EXIT_RTN_VALUE(-1, "Couldn't create refresh_data\n");
 	}
 
@@ -1605,6 +1757,7 @@ static int handle_topology_request_change(struct ast_sip_session *session,
 	if (res) {
 		topology_change_refresh_data_free(refresh_data);
 	}
+    ast_log(LOG_DEBUG, "TMA - handle_topology_request_change - END");
 	SCOPE_EXIT_RTN_VALUE(res, "RC: %d\n", res);
 }
 
@@ -1630,6 +1783,7 @@ static int chan_pjsip_indicate(struct ast_channel *ast, int condition, const voi
 	char condition_name[256];
 	SCOPE_ENTER(3, "%s: Indicated %s\n", ast_channel_name(ast),
 		ast_frame_subclass2str(&f, condition_name, sizeof(condition_name), NULL, 0));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_indicate - START");
 
 	switch (condition) {
 	case AST_CONTROL_RINGING:
@@ -1839,6 +1993,7 @@ static int chan_pjsip_indicate(struct ast_channel *ast, int condition, const voi
 		}
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_indicate - END");
 	SCOPE_EXIT_RTN_VALUE(res, "%s\n", ast_channel_name(ast));
 }
 
@@ -1850,27 +2005,33 @@ struct transfer_data {
 static void transfer_data_destroy(void *obj)
 {
 	struct transfer_data *trnf_data = obj;
+    ast_log(LOG_DEBUG, "TMA - transfer_data_destroy - START");
 
 	ast_free(trnf_data->target);
 	ao2_cleanup(trnf_data->session);
+    ast_log(LOG_DEBUG, "TMA - transfer_data_destroy - END");
 }
 
 static struct transfer_data *transfer_data_alloc(struct ast_sip_session *session, const char *target)
 {
 	struct transfer_data *trnf_data = ao2_alloc(sizeof(*trnf_data), transfer_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - transfer_data_alloc - START");
 
 	if (!trnf_data) {
+        ast_log(LOG_DEBUG, "TMA - transfer_data_alloc - END -1");
 		return NULL;
 	}
 
 	if (!(trnf_data->target = ast_strdup(target))) {
 		ao2_ref(trnf_data, -1);
+        ast_log(LOG_DEBUG, "TMA - transfer_data_alloc - END - 2");
 		return NULL;
 	}
 
 	ao2_ref(session, +1);
 	trnf_data->session = session;
 
+    ast_log(LOG_DEBUG, "TMA - transfer_data_alloc - END");
 	return trnf_data;
 }
 
@@ -1880,6 +2041,7 @@ static void transfer_redirect(struct ast_sip_session *session, const char *targe
 	enum ast_control_transfer message = AST_TRANSFER_SUCCESS;
 	pjsip_contact_hdr *contact;
 	pj_str_t tmp;
+    ast_log(LOG_DEBUG, "TMA - transfer_redirect - START");
 
 	if (pjsip_inv_end_session(session->inv_session, 302, NULL, &packet) != PJ_SUCCESS
 		|| !packet) {
@@ -1888,6 +2050,7 @@ static void transfer_redirect(struct ast_sip_session *session, const char *targe
 		message = AST_TRANSFER_FAILED;
 		ast_queue_control_data(session->channel, AST_CONTROL_TRANSFER, &message, sizeof(message));
 
+        ast_log(LOG_DEBUG, "TMA - transfer_redirect - END - 1");
 		return;
 	}
 
@@ -1903,12 +2066,14 @@ static void transfer_redirect(struct ast_sip_session *session, const char *targe
 		ast_queue_control_data(session->channel, AST_CONTROL_TRANSFER, &message, sizeof(message));
 		pjsip_tx_data_dec_ref(packet);
 
+        ast_log(LOG_DEBUG, "TMA - transfer_redirect - END - 2");
 		return;
 	}
 	pjsip_msg_add_hdr(packet->msg, (pjsip_hdr *) contact);
 
 	ast_sip_session_send_response(session, packet);
 	ast_queue_control_data(session->channel, AST_CONTROL_TRANSFER, &message, sizeof(message));
+    ast_log(LOG_DEBUG, "TMA - transfer_redirect - END");
 }
 
 /*! \brief REFER Callback module, used to attach session data structure to subscription */
@@ -1929,13 +2094,16 @@ static void xfer_client_on_evsub_state(pjsip_evsub *sub, pjsip_event *event)
 	struct ast_channel *chan;
 	enum ast_control_transfer message = AST_TRANSFER_SUCCESS;
 	int res = 0;
+    ast_log(LOG_DEBUG, "TMA - xfer_client_on_evsub_state - START");
 
 	if (!event) {
+        ast_log(LOG_DEBUG, "TMA - xfer_client_on_evsub_state - END - 1");
 		return;
 	}
 
 	chan = pjsip_evsub_get_mod_data(sub, refer_callback_module.id);
 	if (!chan) {
+        ast_log(LOG_DEBUG, "TMA - xfer_client_on_evsub_state - END - 2");
 		return;
 	}
 
@@ -2039,6 +2207,7 @@ static void xfer_client_on_evsub_state(pjsip_evsub *sub, pjsip_event *event)
 		ast_queue_control_data(chan, AST_CONTROL_TRANSFER, &message, sizeof(message));
 		ao2_ref(chan, -1);
 	}
+    ast_log(LOG_DEBUG, "TMA - xfer_client_on_evsub_state - END");
 }
 
 static void transfer_refer(struct ast_sip_session *session, const char *target)
@@ -2051,6 +2220,7 @@ static void transfer_refer(struct ast_sip_session *session, const char *target)
 	char local_info[pj_strlen(&session->inv_session->dlg->local.info_str) + 1];
 	struct pjsip_evsub_user xfer_cb;
 	struct ast_channel *chan = session->channel;
+    ast_log(LOG_DEBUG, "TMA - transfer_refer - START");
 
 	pj_bzero(&xfer_cb, sizeof(xfer_cb));
 	xfer_cb.on_evsub_state = &xfer_client_on_evsub_state;
@@ -2059,6 +2229,7 @@ static void transfer_refer(struct ast_sip_session *session, const char *target)
 		message = AST_TRANSFER_FAILED;
 		ast_queue_control_data(chan, AST_CONTROL_TRANSFER, &message, sizeof(message));
 
+        ast_log(LOG_DEBUG, "TMA - transfer_refer - END - 1");
 		return;
 	}
 
@@ -2081,6 +2252,7 @@ static void transfer_refer(struct ast_sip_session *session, const char *target)
 	}
 
 	if (pjsip_xfer_send_request(sub, packet) == PJ_SUCCESS) {
+        ast_log(LOG_DEBUG, "TMA - transfer_refer - END - 2");
 		return;
 	}
 
@@ -2091,6 +2263,7 @@ failure:
 	pjsip_evsub_terminate(sub, PJ_FALSE);
 
 	ao2_ref(chan, -1);
+    ast_log(LOG_DEBUG, "TMA - transfer_refer - END");
 }
 
 static int transfer(void *data)
@@ -2099,6 +2272,7 @@ static int transfer(void *data)
 	struct ast_sip_endpoint *endpoint = NULL;
 	struct ast_sip_contact *contact = NULL;
 	const char *target = trnf_data->target;
+    ast_log(LOG_DEBUG, "TMA - transfer - START");
 
 	if (trnf_data->session->inv_session->state == PJSIP_INV_STATE_DISCONNECTED) {
 		ast_log(LOG_ERROR, "Session already DISCONNECTED [reason=%d (%s)]\n",
@@ -2124,6 +2298,7 @@ static int transfer(void *data)
 	ao2_ref(trnf_data, -1);
 	ao2_cleanup(endpoint);
 	ao2_cleanup(contact);
+    ast_log(LOG_DEBUG, "TMA - transfer - END");
 	return 0;
 }
 
@@ -2132,17 +2307,21 @@ static int chan_pjsip_transfer(struct ast_channel *chan, const char *target)
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(chan);
 	struct transfer_data *trnf_data = transfer_data_alloc(channel->session, target);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_transfer - START");
 
 	if (!trnf_data) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_transfer - END - 1");
 		return -1;
 	}
 
 	if (ast_sip_push_task(channel->session->serializer, transfer, trnf_data)) {
 		ast_log(LOG_WARNING, "Error requesting transfer\n");
 		ao2_cleanup(trnf_data);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_transfer - END - 2");
 		return -1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_transfer - END");
 	return 0;
 }
 
@@ -2151,12 +2330,14 @@ static int chan_pjsip_digit_begin(struct ast_channel *chan, char digit)
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(chan);
 	struct ast_sip_session_media *media;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - START");
 
 	media = channel->session->active_media_state->default_session[AST_MEDIA_TYPE_AUDIO];
 
 	switch (channel->session->dtmf) {
 	case AST_SIP_DTMF_RFC_4733:
 		if (!media || !media->rtp) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END - 1");
 			return 0;
 		}
 
@@ -2164,10 +2345,12 @@ static int chan_pjsip_digit_begin(struct ast_channel *chan, char digit)
 		break;
 	case AST_SIP_DTMF_AUTO:
 		if (!media || !media->rtp) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END - 2");
 			return 0;
 		}
 
 		if (ast_rtp_instance_dtmf_mode_get(media->rtp) == AST_RTP_DTMF_MODE_INBAND) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END - 3");
 			return -1;
 		}
 
@@ -2175,6 +2358,7 @@ static int chan_pjsip_digit_begin(struct ast_channel *chan, char digit)
 		break;
 	case AST_SIP_DTMF_AUTO_INFO:
 		if (!media || !media->rtp || (ast_rtp_instance_dtmf_mode_get(media->rtp) == AST_RTP_DTMF_MODE_NONE)) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END - 4");
 			return 0;
 		}
 		ast_rtp_instance_dtmf_begin(media->rtp, digit);
@@ -2182,11 +2366,13 @@ static int chan_pjsip_digit_begin(struct ast_channel *chan, char digit)
 	case AST_SIP_DTMF_NONE:
 		break;
 	case AST_SIP_DTMF_INBAND:
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END - 5");
 		return -1;
 	default:
 		break;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_begin - END");
 	return 0;
 }
 
@@ -2199,19 +2385,24 @@ struct info_dtmf_data {
 static void info_dtmf_data_destroy(void *obj)
 {
 	struct info_dtmf_data *dtmf_data = obj;
+    ast_log(LOG_DEBUG, "TMA - info_dtmf_data_destroy - START");
 	ao2_ref(dtmf_data->session, -1);
+    ast_log(LOG_DEBUG, "TMA - info_dtmf_data_destroy - END");
 }
 
 static struct info_dtmf_data *info_dtmf_data_alloc(struct ast_sip_session *session, char digit, unsigned int duration)
 {
 	struct info_dtmf_data *dtmf_data = ao2_alloc(sizeof(*dtmf_data), info_dtmf_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - info_dtmf_data_alloc - START");
 	if (!dtmf_data) {
+        ast_log(LOG_DEBUG, "TMA - info_dtmf_data_alloc - END - 1");
 		return NULL;
 	}
 	ao2_ref(session, +1);
 	dtmf_data->session = session;
 	dtmf_data->digit = digit;
 	dtmf_data->duration = duration;
+    ast_log(LOG_DEBUG, "TMA - info_dtmf_data_alloc - END");
 	return dtmf_data;
 }
 
@@ -2228,16 +2419,19 @@ static int transmit_info_dtmf(void *data)
 		.type = "application",
 		.subtype = "dtmf-relay",
 	};
+    ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - START");
 
 	if (session->inv_session->state == PJSIP_INV_STATE_DISCONNECTED) {
 		ast_log(LOG_ERROR, "Session already DISCONNECTED [reason=%d (%s)]\n",
 			session->inv_session->cause,
 			pjsip_get_status_text(session->inv_session->cause)->ptr);
+        ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - END - 1");
 		return -1;
 	}
 
 	if (!(body_text = ast_str_create(32))) {
 		ast_log(LOG_ERROR, "Could not allocate buffer for INFO DTMF.\n");
+        ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - END - 2");
 		return -1;
 	}
 	ast_str_set(&body_text, 0, "Signal=%c\r\nDuration=%u\r\n", dtmf_data->digit, dtmf_data->duration);
@@ -2246,15 +2440,18 @@ static int transmit_info_dtmf(void *data)
 
 	if (ast_sip_create_request("INFO", session->inv_session->dlg, session->endpoint, NULL, NULL, &tdata)) {
 		ast_log(LOG_ERROR, "Could not create DTMF INFO request\n");
+        ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - END - 3");
 		return -1;
 	}
 	if (ast_sip_add_body(tdata, &body)) {
 		ast_log(LOG_ERROR, "Could not add body to DTMF INFO request\n");
 		pjsip_tx_data_dec_ref(tdata);
+        ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - END - 4");
 		return -1;
 	}
 	ast_sip_session_send_request(session, tdata);
 
+    ast_log(LOG_DEBUG, "TMA - transmit_info_dtmf - END");
 	return 0;
 }
 
@@ -2263,10 +2460,12 @@ static int chan_pjsip_digit_end(struct ast_channel *ast, char digit, unsigned in
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	struct ast_sip_session_media *media;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - START");
 
 	if (!channel || !channel->session) {
 		/* This happens when the channel is hungup while a DTMF digit is playing. See ASTERISK-28086 */
 		ast_debug(3, "Channel %s disappeared while calling digit_end\n", ast_channel_name(ast));
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 1");
 		return -1;
 	}
 
@@ -2276,6 +2475,7 @@ static int chan_pjsip_digit_end(struct ast_channel *ast, char digit, unsigned in
 	case AST_SIP_DTMF_AUTO_INFO:
 	{
 		if (!media || !media->rtp) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 2");
 			return 0;
 		}
 
@@ -2293,18 +2493,21 @@ static int chan_pjsip_digit_end(struct ast_channel *ast, char digit, unsigned in
 		struct info_dtmf_data *dtmf_data = info_dtmf_data_alloc(channel->session, digit, duration);
 
 		if (!dtmf_data) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 3");
 			return -1;
 		}
 
 		if (ast_sip_push_task(channel->session->serializer, transmit_info_dtmf, dtmf_data)) {
 			ast_log(LOG_WARNING, "Error sending DTMF via INFO.\n");
 			ao2_cleanup(dtmf_data);
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 4");
 			return -1;
 		}
 		break;
 	}
 	case AST_SIP_DTMF_RFC_4733:
 		if (!media || !media->rtp) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 5");
 			return 0;
 		}
 
@@ -2312,10 +2515,12 @@ static int chan_pjsip_digit_end(struct ast_channel *ast, char digit, unsigned in
 		break;
 	case AST_SIP_DTMF_AUTO:
 		if (!media || !media->rtp) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 6");
 			return 0;
 		}
 
 		if (ast_rtp_instance_dtmf_mode_get(media->rtp) == AST_RTP_DTMF_MODE_INBAND) {
+            ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 7");
 			 return -1;
 		}
 
@@ -2324,15 +2529,18 @@ static int chan_pjsip_digit_end(struct ast_channel *ast, char digit, unsigned in
 	case AST_SIP_DTMF_NONE:
 		break;
 	case AST_SIP_DTMF_INBAND:
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END - 8");
 		return -1;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_digit_end - END");
 	return 0;
 }
 
 static void update_initial_connected_line(struct ast_sip_session *session)
 {
 	struct ast_party_connected_line connected;
+    ast_log(LOG_DEBUG, "TMA - update_initial_connected_line - START");
 
 	/*
 	 * Use the channel CALLERID() as the initial connected line data.
@@ -2345,6 +2553,7 @@ static void update_initial_connected_line(struct ast_sip_session *session)
 
 	/* Supply initial connected line information if available. */
 	if (!session->id.number.valid && !session->id.name.valid) {
+        ast_log(LOG_DEBUG, "TMA - update_initial_connected_line - END - 1");
 		return;
 	}
 
@@ -2353,6 +2562,7 @@ static void update_initial_connected_line(struct ast_sip_session *session)
 	connected.source = AST_CONNECTED_LINE_UPDATE_SOURCE_ANSWER;
 
 	ast_channel_queue_connected_line_update(session->channel, &connected, NULL);
+    ast_log(LOG_DEBUG, "TMA - update_initial_connected_line - END");
 }
 
 static int call(void *data)
@@ -2365,6 +2575,7 @@ static int call(void *data)
 		ast_sip_session_get_name(session),
 		ast_str_tmp(256, ast_stream_topology_to_str(channel->session->pending_media_state->topology, &STR_TMP))
 		);
+    ast_log(LOG_DEBUG, "TMA - call - START");
 
 
 	res = ast_sip_session_create_invite(session, &tdata);
@@ -2378,6 +2589,7 @@ static int call(void *data)
 		ast_sip_session_send_request(session, tdata);
 	}
 	ao2_ref(channel, -1);
+    ast_log(LOG_DEBUG, "TMA - call - END");
 	SCOPE_EXIT_RTN_VALUE(res, "RC: %d\n", res);
 }
 
@@ -2387,62 +2599,83 @@ static int chan_pjsip_call(struct ast_channel *ast, const char *dest, int timeou
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	SCOPE_ENTER(1, "%s Topology: %s\n", ast_sip_session_get_name(channel->session),
 		ast_str_tmp(256, ast_stream_topology_to_str(channel->session->pending_media_state->topology, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_call - START");
 
 	ao2_ref(channel, +1);
 	if (ast_sip_push_task(channel->session->serializer, call, channel)) {
 		ast_log(LOG_WARNING, "Error attempting to place outbound call to '%s'\n", dest);
 		ao2_cleanup(channel);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_call - END - 1");
 		SCOPE_EXIT_RTN_VALUE(-1, "Couldn't push task\n");
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_call - END");
 	SCOPE_EXIT_RTN_VALUE(0, "'call' task pushed\n");
 }
 
 /*! \brief Internal function which translates from Asterisk cause codes to SIP response codes */
 static int hangup_cause2sip(int cause)
 {
+    ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - START");
 	switch (cause) {
 	case AST_CAUSE_UNALLOCATED:             /* 1 */
 	case AST_CAUSE_NO_ROUTE_DESTINATION:    /* 3 IAX2: Can't find extension in context */
 	case AST_CAUSE_NO_ROUTE_TRANSIT_NET:    /* 2 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 1");
 		return 404;
 	case AST_CAUSE_CONGESTION:              /* 34 */
 	case AST_CAUSE_SWITCH_CONGESTION:       /* 42 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 2");
 		return 503;
 	case AST_CAUSE_NO_USER_RESPONSE:        /* 18 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 3");
 		return 408;
 	case AST_CAUSE_NO_ANSWER:               /* 19 */
 	case AST_CAUSE_UNREGISTERED:        /* 20 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 4");
 		return 480;
 	case AST_CAUSE_CALL_REJECTED:           /* 21 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 5");
 		return 403;
 	case AST_CAUSE_NUMBER_CHANGED:          /* 22 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 6");
 		return 410;
 	case AST_CAUSE_NORMAL_UNSPECIFIED:      /* 31 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 8");
 		return 480;
 	case AST_CAUSE_INVALID_NUMBER_FORMAT:
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 8");
 		return 484;
 	case AST_CAUSE_USER_BUSY:
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 9");
 		return 486;
 	case AST_CAUSE_FAILURE:
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 10");
 		return 500;
 	case AST_CAUSE_FACILITY_REJECTED:       /* 29 */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 11");
 		return 501;
 	case AST_CAUSE_CHAN_NOT_IMPLEMENTED:
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 12");
 		return 503;
 	case AST_CAUSE_DESTINATION_OUT_OF_ORDER:
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 13");
 		return 502;
 	case AST_CAUSE_BEARERCAPABILITY_NOTAVAIL:       /* Can't find codec to connect to host */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 14");
 		return 488;
 	case AST_CAUSE_INTERWORKING:    /* Unspecified Interworking issues */
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 15");
 		return 500;
 	case AST_CAUSE_NOTDEFINED:
 	default:
 		ast_debug(1, "AST hangup cause %d (no match found in PJSIP)\n", cause);
+        ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END - 16");
 		return 0;
 	}
 
 	/* Never reached */
+    ast_log(LOG_DEBUG, "TMA - hangup_cause2sip - END");
 	return 0;
 }
 
@@ -2454,30 +2687,37 @@ struct hangup_data {
 static void hangup_data_destroy(void *obj)
 {
 	struct hangup_data *h_data = obj;
+    ast_log(LOG_DEBUG, "TMA - hangup_data_destroy - START");
 
 	h_data->chan = ast_channel_unref(h_data->chan);
+    ast_log(LOG_DEBUG, "TMA - hangup_data_destroy - END");
 }
 
 static struct hangup_data *hangup_data_alloc(int cause, struct ast_channel *chan)
 {
 	struct hangup_data *h_data = ao2_alloc(sizeof(*h_data), hangup_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - hangup_data_alloc - START");
 
 	if (!h_data) {
+        ast_log(LOG_DEBUG, "TMA - hangup_data_alloc - END - 1");
 		return NULL;
 	}
 
 	h_data->cause = cause;
 	h_data->chan = ast_channel_ref(chan);
 
+    ast_log(LOG_DEBUG, "TMA - hangup_data_alloc - END");
 	return h_data;
 }
 
 /*! \brief Clear a channel from a session along with its PVT */
 static void clear_session_and_channel(struct ast_sip_session *session, struct ast_channel *ast)
 {
+    ast_log(LOG_DEBUG, "TMA - clear_session_and_channel - START");
 	session->channel = NULL;
 	set_channel_on_rtp_instance(session, "");
 	ast_channel_tech_pvt_set(ast, NULL);
+    ast_log(LOG_DEBUG, "TMA - clear_session_and_channel - END");
 }
 
 static int hangup(void *data)
@@ -2486,6 +2726,7 @@ static int hangup(void *data)
 	struct ast_channel *ast = h_data->chan;
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	SCOPE_ENTER(1, "%s\n", ast_channel_name(ast));
+    ast_log(LOG_DEBUG, "TMA - hangup - START");
 
 	/*
 	 * Before cleaning we have to ensure that channel or its session is not NULL
@@ -2509,6 +2750,7 @@ static int hangup(void *data)
 		ao2_cleanup(channel);
 	}
 	ao2_cleanup(h_data);
+    ast_log(LOG_DEBUG, "TMA - hangup - END");
 	SCOPE_EXIT_RTN_VALUE(0);
 }
 
@@ -2519,8 +2761,10 @@ static int chan_pjsip_hangup(struct ast_channel *ast)
 	int cause;
 	struct hangup_data *h_data;
 	SCOPE_ENTER(1, "%s\n", ast_channel_name(ast));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_hangup - START");
 
 	if (!channel || !channel->session) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_hangup - END - 1");
 		SCOPE_EXIT_RTN_VALUE(-1, "No channel or session\n");
 	}
 
@@ -2536,6 +2780,7 @@ static int chan_pjsip_hangup(struct ast_channel *ast)
 		goto failure;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_hangup - END - 2");
 	SCOPE_EXIT_RTN_VALUE(0, "Cause: %d\n", cause);
 
 failure:
@@ -2546,6 +2791,7 @@ failure:
 	ao2_cleanup(channel);
 	ao2_cleanup(h_data);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_hangup - END");
 	SCOPE_EXIT_RTN_VALUE(-1, "Cause: %d\n", cause);
 }
 
@@ -2568,10 +2814,12 @@ static int request(void *obj)
 		AST_APP_ARG(aor);
 	);
 	SCOPE_ENTER(1, "%s\n",tmp);
+    ast_log(LOG_DEBUG, "TMA - request - START");
 
 	if (ast_strlen_zero(tmp)) {
 		ast_log(LOG_ERROR, "Unable to create PJSIP channel with empty destination\n");
 		req_data->cause = AST_CAUSE_CHANNEL_UNACCEPTABLE;
+        ast_log(LOG_DEBUG, "TMA - request - END - 1");
 		SCOPE_EXIT_RTN_VALUE(-1, "Empty destination\n");
 	}
 
@@ -2594,6 +2842,7 @@ static int request(void *obj)
 				ast_log(LOG_ERROR, "Unable to create PJSIP channel with empty endpoint name\n");
 			}
 			req_data->cause = AST_CAUSE_CHANNEL_UNACCEPTABLE;
+            ast_log(LOG_DEBUG, "TMA - request - END - 2");
 			SCOPE_EXIT_RTN_VALUE(-1, "Empty endpoint name\n");
 		}
 		endpoint = ast_sorcery_retrieve_by_id(ast_sip_get_sorcery(), "endpoint",
@@ -2601,6 +2850,7 @@ static int request(void *obj)
 		if (!endpoint) {
 			ast_log(LOG_ERROR, "Unable to create PJSIP channel - endpoint '%s' was not found\n", endpoint_name);
 			req_data->cause = AST_CAUSE_NO_ROUTE_DESTINATION;
+            ast_log(LOG_DEBUG, "TMA - request - END - 3");
 			SCOPE_EXIT_RTN_VALUE(-1, "Endpoint not found\n");
 		}
 	} else {
@@ -2609,6 +2859,7 @@ static int request(void *obj)
 		if (ast_strlen_zero(endpoint_name)) {
 			ast_log(LOG_ERROR, "Unable to create PJSIP channel with empty endpoint name\n");
 			req_data->cause = AST_CAUSE_CHANNEL_UNACCEPTABLE;
+            ast_log(LOG_DEBUG, "TMA - request - END - 4");
 			SCOPE_EXIT_RTN_VALUE(-1, "Empty endpoint name\n");
 		}
 		endpoint = ast_sorcery_retrieve_by_id(ast_sip_get_sorcery(), "endpoint",
@@ -2627,6 +2878,7 @@ static int request(void *obj)
 				ast_log(LOG_ERROR, "Unable to create PJSIP channel - endpoint '%s' was not found\n",
 					args.endpoint);
 				req_data->cause = AST_CAUSE_NO_ROUTE_DESTINATION;
+                ast_log(LOG_DEBUG, "TMA - request - END - 5");
 				SCOPE_EXIT_RTN_VALUE(-1, "Endpoint not found\n");
 			}
 			request_user = args.endpoint;
@@ -2636,6 +2888,7 @@ static int request(void *obj)
 				ast_log(LOG_ERROR, "Unable to create PJSIP channel with empty endpoint name: %s@<endpoint-name>\n",
 					request_user);
 				req_data->cause = AST_CAUSE_CHANNEL_UNACCEPTABLE;
+                ast_log(LOG_DEBUG, "TMA - request - END - 6");
 				SCOPE_EXIT_RTN_VALUE(-1, "Empty endpoint name\n");
 			}
 
@@ -2644,6 +2897,7 @@ static int request(void *obj)
 			if (!endpoint) {
 				ast_log(LOG_ERROR, "Unable to create PJSIP channel - endpoint '%s' was not found\n", endpoint_name);
 				req_data->cause = AST_CAUSE_NO_ROUTE_DESTINATION;
+                ast_log(LOG_DEBUG, "TMA - request - END - 7");
 				SCOPE_EXIT_RTN_VALUE(-1, "Endpoint not found\n");
 			}
 		}
@@ -2655,11 +2909,13 @@ static int request(void *obj)
 	if (!session) {
 		ast_log(LOG_ERROR, "Failed to create outgoing session to endpoint '%s'\n", endpoint_name);
 		req_data->cause = AST_CAUSE_NO_ROUTE_DESTINATION;
+        ast_log(LOG_DEBUG, "TMA - request - END - 8");
 		SCOPE_EXIT_RTN_VALUE(-1, "Couldn't create session\n");
 	}
 
 	req_data->session = session;
 
+    ast_log(LOG_DEBUG, "TMA - request - END");
 	SCOPE_EXIT_RTN_VALUE(0);
 }
 
@@ -2670,6 +2926,7 @@ static struct ast_channel *chan_pjsip_request_with_stream_topology(const char *t
 	RAII_VAR(struct ast_sip_session *, session, NULL, ao2_cleanup);
 	SCOPE_ENTER(1, "%s Topology: %s\n", data,
 		ast_str_tmp(256, ast_stream_topology_to_str(topology, &STR_TMP)));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_request_with_stream_topology - START");
 
 	req_data.topology = topology;
 	req_data.dest = data;
@@ -2678,6 +2935,7 @@ static struct ast_channel *chan_pjsip_request_with_stream_topology(const char *t
 
 	if (ast_sip_push_task_wait_servant(NULL, request, &req_data)) {
 		*cause = req_data.cause;
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_request_with_stream_topology - END - 1");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't push task\n");
 	}
 
@@ -2685,9 +2943,11 @@ static struct ast_channel *chan_pjsip_request_with_stream_topology(const char *t
 
 	if (!(session->channel = chan_pjsip_new(session, AST_STATE_DOWN, NULL, NULL, assignedids, requestor, NULL))) {
 		/* Session needs to be terminated prematurely */
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_request_with_stream_topology - END - 2");
 		SCOPE_EXIT_RTN_VALUE(NULL, "Couldn't create channel\n");
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_request_with_stream_topology - END");
 	SCOPE_EXIT_RTN_VALUE(session->channel, "Channel: %s\n", ast_channel_name(session->channel));
 }
 
@@ -2695,9 +2955,11 @@ static struct ast_channel *chan_pjsip_request(const char *type, struct ast_forma
 {
 	struct ast_stream_topology *topology;
 	struct ast_channel *chan;
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_request - START");
 
 	topology = ast_stream_topology_create_from_format_cap(cap);
 	if (!topology) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_request - END - 1");
 		return NULL;
 	}
 
@@ -2705,6 +2967,7 @@ static struct ast_channel *chan_pjsip_request(const char *type, struct ast_forma
 
 	ast_stream_topology_free(topology);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_request - END");
 	return chan;
 }
 
@@ -2716,8 +2979,10 @@ struct sendtext_data {
 static void sendtext_data_destroy(void *obj)
 {
 	struct sendtext_data *data = obj;
+    ast_log(LOG_DEBUG, "TMA - sendtext_data_destroy - START");
 	ao2_cleanup(data->session);
 	ast_free(data->msg);
+    ast_log(LOG_DEBUG, "TMA - sendtext_data_destroy - END");
 }
 
 static struct sendtext_data* sendtext_data_create(struct ast_channel *chan,
@@ -2725,19 +2990,23 @@ static struct sendtext_data* sendtext_data_create(struct ast_channel *chan,
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(chan);
 	struct sendtext_data *data = ao2_alloc(sizeof(*data), sendtext_data_destroy);
+    ast_log(LOG_DEBUG, "TMA - sendtext_data_create - START");
 
 	if (!data) {
+        ast_log(LOG_DEBUG, "TMA - sendtext_data_create - END - 1");
 		return NULL;
 	}
 
 	data->msg = ast_msg_data_dup(msg);
 	if (!data->msg) {
 		ao2_cleanup(data);
+        ast_log(LOG_DEBUG, "TMA - sendtext_data_create - END - 2");
 		return NULL;
 	}
 	data->session = channel->session;
 	ao2_ref(data->session, +1);
 
+    ast_log(LOG_DEBUG, "TMA - sendtext_data_create - END");
 	return data;
 }
 
@@ -2753,6 +3022,7 @@ static int sendtext(void *obj)
 		.subtype = "plain",
 		.body_text = body_text,
 	};
+    ast_log(LOG_DEBUG, "TMA - sendtext - START");
 
 	if (!ast_strlen_zero(content_type)) {
 		sep = strchr(content_type, '/');
@@ -2808,6 +3078,7 @@ static int sendtext(void *obj)
 
 	ao2_cleanup(data);
 
+    ast_log(LOG_DEBUG, "TMA - sendtext - END");
 	return 0;
 }
 
@@ -2816,6 +3087,7 @@ static int chan_pjsip_sendtext_data(struct ast_channel *ast, struct ast_msg_data
 {
 	struct ast_sip_channel_pvt *channel = ast_channel_tech_pvt(ast);
 	struct sendtext_data *data = sendtext_data_create(ast, msg);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext_data - START");
 
 	ast_debug(1, "Sending MESSAGE from '%s' to '%s:%s': %s\n",
 		ast_msg_data_get_attribute(msg, AST_MSG_DATA_ATTR_FROM),
@@ -2824,13 +3096,16 @@ static int chan_pjsip_sendtext_data(struct ast_channel *ast, struct ast_msg_data
 		ast_msg_data_get_attribute(msg, AST_MSG_DATA_ATTR_BODY));
 
 	if (!data) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext_data - END - 1");
 		return -1;
 	}
 
 	if (ast_sip_push_task(channel->session->serializer, sendtext, data)) {
 		ao2_ref(data, -1);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext_data - END - 2");
 		return -1;
 	}
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext_data - END");
 	return 0;
 }
 
@@ -2845,14 +3120,17 @@ static int chan_pjsip_sendtext(struct ast_channel *ast, const char *text)
 			.value = (char *)text,
 		}
 	};
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext - START");
 
 	msg = ast_msg_data_alloc(AST_MSG_DATA_SOURCE_TYPE_UNKNOWN, attrs, ARRAY_LEN(attrs));
 	if (!msg) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext - END - 1");
 		return -1;
 	}
 	rc = chan_pjsip_sendtext_data(ast, msg);
 	ast_free(msg);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_sendtext - END");
 	return rc;
 }
 
@@ -2860,90 +3138,130 @@ static int chan_pjsip_sendtext(struct ast_channel *ast, const char *text)
 static int hangup_sip2cause(int cause)
 {
 	/* Possible values taken from causes.h */
+    ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - START");
 
 	switch(cause) {
 	case 401:       /* Unauthorized */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 1");
 		return AST_CAUSE_CALL_REJECTED;
 	case 403:       /* Not found */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 2");
 		return AST_CAUSE_CALL_REJECTED;
 	case 404:       /* Not found */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 3");
 		return AST_CAUSE_UNALLOCATED;
 	case 405:       /* Method not allowed */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 4");
 		return AST_CAUSE_INTERWORKING;
 	case 407:       /* Proxy authentication required */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 5");
 		return AST_CAUSE_CALL_REJECTED;
 	case 408:       /* No reaction */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 6");
 		return AST_CAUSE_NO_USER_RESPONSE;
 	case 409:       /* Conflict */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 7");
 		return AST_CAUSE_NORMAL_TEMPORARY_FAILURE;
 	case 410:       /* Gone */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 8");
 		return AST_CAUSE_NUMBER_CHANGED;
 	case 411:       /* Length required */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 9");
 		return AST_CAUSE_INTERWORKING;
 	case 413:       /* Request entity too large */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 10");
 		return AST_CAUSE_INTERWORKING;
 	case 414:       /* Request URI too large */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 11");
 		return AST_CAUSE_INTERWORKING;
 	case 415:       /* Unsupported media type */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 12");
 		return AST_CAUSE_INTERWORKING;
 	case 420:       /* Bad extension */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 13");
 		return AST_CAUSE_NO_ROUTE_DESTINATION;
 	case 480:       /* No answer */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 14");
 		return AST_CAUSE_NO_ANSWER;
 	case 481:       /* No answer */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 15");
 		return AST_CAUSE_INTERWORKING;
 	case 482:       /* Loop detected */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 16");
 		return AST_CAUSE_INTERWORKING;
 	case 483:       /* Too many hops */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 17");
 		return AST_CAUSE_NO_ANSWER;
 	case 484:       /* Address incomplete */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 18");
 		return AST_CAUSE_INVALID_NUMBER_FORMAT;
 	case 485:       /* Ambiguous */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 19");
 		return AST_CAUSE_UNALLOCATED;
 	case 486:       /* Busy everywhere */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 20");
 		return AST_CAUSE_BUSY;
 	case 487:       /* Request terminated */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 21");
 		return AST_CAUSE_INTERWORKING;
 	case 488:       /* No codecs approved */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 22");
 		return AST_CAUSE_BEARERCAPABILITY_NOTAVAIL;
 	case 491:       /* Request pending */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 23");
 		return AST_CAUSE_INTERWORKING;
 	case 493:       /* Undecipherable */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 24");
 		return AST_CAUSE_INTERWORKING;
 	case 500:       /* Server internal failure */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 25");
 		return AST_CAUSE_FAILURE;
 	case 501:       /* Call rejected */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 26");
 		return AST_CAUSE_FACILITY_REJECTED;
 	case 502:
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 27");
 		return AST_CAUSE_DESTINATION_OUT_OF_ORDER;
 	case 503:       /* Service unavailable */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 28");
 		return AST_CAUSE_CONGESTION;
 	case 504:       /* Gateway timeout */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 29");
 		return AST_CAUSE_RECOVERY_ON_TIMER_EXPIRE;
 	case 505:       /* SIP version not supported */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 30");
 		return AST_CAUSE_INTERWORKING;
 	case 600:       /* Busy everywhere */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 31");
 		return AST_CAUSE_USER_BUSY;
 	case 603:       /* Decline */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 32");
 		return AST_CAUSE_CALL_REJECTED;
 	case 604:       /* Does not exist anywhere */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 33");
 		return AST_CAUSE_UNALLOCATED;
 	case 606:       /* Not acceptable */
+        ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 34");
 		return AST_CAUSE_BEARERCAPABILITY_NOTAVAIL;
 	default:
 		if (cause < 500 && cause >= 400) {
 			/* 4xx class error that is unknown - someting wrong with our request */
+            ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 35");
 			return AST_CAUSE_INTERWORKING;
 		} else if (cause < 600 && cause >= 500) {
 			/* 5xx class error - problem in the remote end */
+            ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 36");
 			return AST_CAUSE_CONGESTION;
 		} else if (cause < 700 && cause >= 600) {
 			/* 6xx - global errors in the 4xx class */
+            ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 37");
 			return AST_CAUSE_INTERWORKING;
 		}
+            ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END - 38");
 		return AST_CAUSE_NORMAL;
 	}
 	/* Never reached */
+    ast_log(LOG_DEBUG, "TMA - hangup_sip2cause - END");
 	return 0;
 }
 
@@ -2951,9 +3269,11 @@ static void chan_pjsip_session_begin(struct ast_sip_session *session)
 {
 	RAII_VAR(struct ast_datastore *, datastore, NULL, ao2_cleanup);
 	SCOPE_ENTER(1, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_begin - START");
 
 	if (session->endpoint->media.direct_media.glare_mitigation ==
 			AST_SIP_DIRECT_MEDIA_GLARE_MITIGATION_NONE) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_begin - END - 1");
 		SCOPE_EXIT_RTN("Direct media no glare mitigation\n");
 	}
 
@@ -2961,10 +3281,12 @@ static void chan_pjsip_session_begin(struct ast_sip_session *session)
 			"direct_media_glare_mitigation");
 
 	if (!datastore) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_begin - END - 2");
 		SCOPE_EXIT_RTN("Couldn't create datastore\n");
 	}
 
 	ast_sip_session_add_datastore(session, datastore);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_begin - END");
 	SCOPE_EXIT_RTN();
 }
 
@@ -2972,8 +3294,10 @@ static void chan_pjsip_session_begin(struct ast_sip_session *session)
 static void chan_pjsip_session_end(struct ast_sip_session *session)
 {
 	SCOPE_ENTER(1, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_end - START");
 
 	if (!session->channel) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_end - END - 1");
 		SCOPE_EXIT_RTN("No channel\n");
 	}
 
@@ -2988,6 +3312,7 @@ static void chan_pjsip_session_end(struct ast_sip_session *session)
 		ast_queue_hangup(session->channel);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_session_end - END");
 	SCOPE_EXIT_RTN();
 }
 
@@ -2996,10 +3321,12 @@ static void set_sipdomain_variable(struct ast_sip_session *session)
 	pjsip_sip_uri *sip_ruri = pjsip_uri_get_uri(session->request_uri);
 	size_t size = pj_strlen(&sip_ruri->host) + 1;
 	char *domain = ast_alloca(size);
+    ast_log(LOG_DEBUG, "TMA - set_sipdomain_variable - START");
 
 	ast_copy_pj_str(domain, &sip_ruri->host, size);
 
 	pbx_builtin_setvar_helper(session->channel, "SIPDOMAIN", domain);
+    ast_log(LOG_DEBUG, "TMA - set_sipdomain_variable - END");
 	return;
 }
 
@@ -3010,8 +3337,10 @@ static int chan_pjsip_incoming_request(struct ast_sip_session *session, struct p
 	struct transport_info_data *transport_data;
 	pjsip_tx_data *packet = NULL;
 	SCOPE_ENTER(3, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - START");
 
 	if (session->channel) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END - 1");
 		SCOPE_EXIT_RTN_VALUE(0, "%s: No channel\n", ast_sip_session_get_name(session));
 	}
 
@@ -3028,16 +3357,19 @@ static int chan_pjsip_incoming_request(struct ast_sip_session *session, struct p
 		 */
 		session->defer_terminate = 0;
 		ast_sip_session_terminate(session, 400);
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END - 2");
 		SCOPE_EXIT_RTN_VALUE(-1, "%s: We have a To tag but no channel.  Terminating session\n", ast_sip_session_get_name(session));
 	}
 
 	datastore = ast_sip_session_alloc_datastore(&transport_info, "transport_info");
 	if (!datastore) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END - 3");
 		SCOPE_EXIT_LOG_RTN_VALUE(-1, LOG_ERROR, "%s: Couldn't alloc transport_info datastore\n", ast_sip_session_get_name(session));
 	}
 
 	transport_data = ast_calloc(1, sizeof(*transport_data));
 	if (!transport_data) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END - 4");
 		SCOPE_EXIT_LOG_RTN_VALUE(-1, LOG_ERROR, "%s: Couldn't alloc transport_info\n", ast_sip_session_get_name(session));
 	}
 	pj_sockaddr_cp(&transport_data->local_addr, &rdata->tp_info.transport->local_addr);
@@ -3051,6 +3383,7 @@ static int chan_pjsip_incoming_request(struct ast_sip_session *session, struct p
 			ast_sip_session_send_response(session, packet);
 		}
 
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END - 5");
 		SCOPE_EXIT_LOG_RTN_VALUE(-1, LOG_ERROR, "%s: Failed to allocate new PJSIP channel on incoming SIP INVITE\n",
 			 ast_sip_session_get_name(session));
 	}
@@ -3059,6 +3392,7 @@ static int chan_pjsip_incoming_request(struct ast_sip_session *session, struct p
 
 	/* channel gets created on incoming request, but we wait to call start
            so other supplements have a chance to run */
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_request - END");
 	SCOPE_EXIT_RTN_VALUE(0, "%s\n", ast_sip_session_get_name(session));
 }
 
@@ -3066,21 +3400,25 @@ static int call_pickup_incoming_request(struct ast_sip_session *session, pjsip_r
 {
 	struct ast_features_pickup_config *pickup_cfg;
 	struct ast_channel *chan;
+    ast_log(LOG_DEBUG, "TMA - call_pickup_incoming_request - ST");
 
 	/* Check for a to-tag to determine if this is a reinvite */
 	if (rdata->msg_info.to->tag.slen) {
 		/* We don't care about reinvites */
+        ast_log(LOG_DEBUG, "TMA - call_pickup_incoming_request - END - 1");
 		return 0;
 	}
 
 	pickup_cfg = ast_get_chan_features_pickup_config(session->channel);
 	if (!pickup_cfg) {
 		ast_log(LOG_ERROR, "Unable to retrieve pickup configuration options. Unable to detect call pickup extension.\n");
+        ast_log(LOG_DEBUG, "TMA - call_pickup_incoming_request - END - 2");
 		return 0;
 	}
 
 	if (strcmp(session->exten, pickup_cfg->pickupexten)) {
 		ao2_ref(pickup_cfg, -1);
+        ast_log(LOG_DEBUG, "TMA - call_pickup_incoming_request - END - 3");
 		return 0;
 	}
 	ao2_ref(pickup_cfg, -1);
@@ -3103,6 +3441,7 @@ static int call_pickup_incoming_request(struct ast_sip_session *session, pjsip_r
 	ast_hangup(chan);
 	ast_channel_unref(chan);
 
+    ast_log(LOG_DEBUG, "TMA - call_pickup_incoming_request - END");
 	return 1;
 }
 
@@ -3116,10 +3455,12 @@ static int pbx_start_incoming_request(struct ast_sip_session *session, pjsip_rx_
 {
 	int res;
 	SCOPE_ENTER(1, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - pbx_start_incoming_request - START");
 
 	/* Check for a to-tag to determine if this is a reinvite */
 	if (rdata->msg_info.to->tag.slen) {
 		/* We don't care about reinvites */
+        ast_log(LOG_DEBUG, "TMA - pbx_start_incoming_request - END - 1");
 		SCOPE_EXIT_RTN_VALUE(0, "Reinvite\n");
 	}
 
@@ -3143,6 +3484,7 @@ static int pbx_start_incoming_request(struct ast_sip_session *session, pjsip_rx_
 
 	ast_debug(3, "Started PBX on new PJSIP channel %s\n", ast_channel_name(session->channel));
 
+    ast_log(LOG_DEBUG, "TMA - pbx_start_incoming_request - END");
 	SCOPE_EXIT_RTN_VALUE((res == AST_PBX_SUCCESS) ? 0 : -1, "RC: %d\n", res);
 }
 
@@ -3159,8 +3501,10 @@ static void chan_pjsip_incoming_response_update_cause(struct ast_sip_session *se
 	struct ast_control_pvt_cause_code *cause_code;
 	int data_size = sizeof(*cause_code);
 	SCOPE_ENTER(3, "%s: Status: %d\n", ast_sip_session_get_name(session), status.code);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response_update_cause - START");
 
 	if (!session->channel) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response_update_cause - END - 1");
 		SCOPE_EXIT_RTN("%s: No channel\n", ast_sip_session_get_name(session));
 	}
 
@@ -3179,6 +3523,7 @@ static void chan_pjsip_incoming_response_update_cause(struct ast_sip_session *se
 	ast_queue_control_data(session->channel, AST_CONTROL_PVT_CAUSE_CODE, cause_code, data_size);
 	ast_channel_hangupcause_hash_set(session->channel, cause_code, data_size);
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response_update_cause - END");
 	SCOPE_EXIT_RTN("%s\n", ast_sip_session_get_name(session));
 }
 
@@ -3187,8 +3532,10 @@ static void chan_pjsip_incoming_response(struct ast_sip_session *session, struct
 {
 	struct pjsip_status_line status = rdata->msg_info.msg->line.status;
 	SCOPE_ENTER(3, "%s: Status: %d\n", ast_sip_session_get_name(session), status.code);
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response - START");
 
 	if (!session->channel) {
+        ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response - END - 1");
 		SCOPE_EXIT_RTN("%s: No channel\n", ast_sip_session_get_name(session));
 	}
 
@@ -3234,12 +3581,14 @@ static void chan_pjsip_incoming_response(struct ast_sip_session *session, struct
 		break;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_response - END");
 	SCOPE_EXIT_RTN("%s\n", ast_sip_session_get_name(session));
 }
 
 static int chan_pjsip_incoming_ack(struct ast_sip_session *session, struct pjsip_rx_data *rdata)
 {
 	SCOPE_ENTER(3, "%s\n", ast_sip_session_get_name(session));
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_ack - START");
 
 	if (rdata->msg_info.msg->line.req.method.id == PJSIP_ACK_METHOD) {
 		if (session->endpoint->media.direct_media.enabled && session->channel) {
@@ -3247,13 +3596,16 @@ static int chan_pjsip_incoming_ack(struct ast_sip_session *session, struct pjsip
 			ast_queue_control(session->channel, AST_CONTROL_SRCCHANGE);
 		}
 	}
+    ast_log(LOG_DEBUG, "TMA - chan_pjsip_incoming_ack - END");
 	SCOPE_EXIT_RTN_VALUE(0, "%s\n", ast_sip_session_get_name(session));
 }
 
 static int update_devstate(void *obj, void *arg, int flags)
 {
+    ast_log(LOG_DEBUG, "TMA - update_devstate - START");
 	ast_devstate_changed(AST_DEVICE_UNKNOWN, AST_DEVSTATE_CACHABLE,
 			     "PJSIP/%s", ast_sorcery_object_get_id(obj));
+    ast_log(LOG_DEBUG, "TMA - update_devstate - END");
 	return 0;
 }
 
@@ -3303,8 +3655,10 @@ static struct ast_custom_function session_refresh_function = {
 static int load_module(void)
 {
 	struct ao2_container *endpoints;
+    ast_log(LOG_DEBUG, "TMA - load_module - START");
 
 	if (!(chan_pjsip_tech.capabilities = ast_format_cap_alloc(AST_FORMAT_CAP_FLAG_DEFAULT))) {
+        ast_log(LOG_DEBUG, "TMA - load_module - END - 1");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
@@ -3375,6 +3729,7 @@ static int load_module(void)
 		ao2_ref(endpoints, -1);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - load_module - END");
 	return 0;
 
 end:
@@ -3395,12 +3750,14 @@ end:
 	ast_channel_unregister(&chan_pjsip_tech);
 	ast_rtp_glue_unregister(&chan_pjsip_rtp_glue);
 
+    ast_log(LOG_DEBUG, "TMA - load_module - END - 1");
 	return AST_MODULE_LOAD_DECLINE;
 }
 
 /*! \brief Unload the PJSIP channel from Asterisk */
 static int unload_module(void)
 {
+    ast_log(LOG_DEBUG, "TMA - unload_module - START");
 	ao2_cleanup(pjsip_uids_onhold);
 	pjsip_uids_onhold = NULL;
 
@@ -3425,6 +3782,7 @@ static int unload_module(void)
 	ao2_ref(chan_pjsip_tech.capabilities, -1);
 	ast_rtp_glue_unregister(&chan_pjsip_rtp_glue);
 
+    ast_log(LOG_DEBUG, "TMA - unload_module - END");
 	return 0;
 }
 

@@ -268,10 +268,12 @@ static void pjsip_logger_write_to_pcap(struct pjsip_logger_session *session, con
 static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
 {
 	char buffer[AST_SOCKADDR_BUFLEN];
+    ast_debug(2, "TMA - logging_on_tx_msg - START");
 
 	ao2_rdlock(default_logger);
 	if (!pjsip_log_test_addr(default_logger, tdata->tp_info.dst_name, tdata->tp_info.dst_port)) {
 		ao2_unlock(default_logger);
+        ast_debug(2, "TMA - logging_on_tx_msg - END - 1");
 		return PJ_SUCCESS;
 	}
 	ao2_unlock(default_logger);
@@ -284,18 +286,21 @@ static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
 			pj_sockaddr_print(&tdata->tp_info.dst_addr, buffer, sizeof(buffer), 3),
 			(int) (tdata->buf.end - tdata->buf.start), tdata->buf.start);
 	}
+    ast_debug(2, "TMA - logging_on_tx_msg - ");
 
 	if (default_logger->log_to_pcap) {
 		pjsip_logger_write_to_pcap(default_logger, tdata->buf.start, (int) (tdata->buf.cur - tdata->buf.start),
 			NULL, &tdata->tp_info.dst_addr);
 	}
 
+    ast_debug(2, "TMA - logging_on_tx_msg - END");
 	return PJ_SUCCESS;
 }
 
 static pj_bool_t logging_on_rx_msg(pjsip_rx_data *rdata)
 {
 	char buffer[AST_SOCKADDR_BUFLEN];
+    ast_debug(2, "TMA - logging_on_rx_msg - START");
 
 	if (!rdata->msg_info.msg) {
 		return PJ_FALSE;

@@ -18562,8 +18562,14 @@ static enum sip_get_dest_result get_destination(struct sip_pvt *p, struct sip_re
 	   Needs to be checked
         */
 	tmpf = ast_strdup(sip_get_header(req, "From"));
+	from = get_in_brackets(tmpf);
+	if( !strncasecmp(from, "tel:",4) ){
+		tmpf = ast_strdup(sip_get_header(req, "P-Asserted-Identity"));
+		from = get_in_brackets(tmpf); /* extract */
+		ast_log(LOG_NOTICE, "PATCH: Using P-Asserted-Identity: [%s]\n", from);
+	}
 	if (!ast_strlen_zero(tmpf)) {
-		from = get_in_brackets(tmpf);
+		// from = get_in_brackets(tmpf);
 		if (parse_uri_legacy_check(from, "sip:,sips:,tel:", &from, NULL, &domain, NULL)) {
 			ast_log(LOG_WARNING, "Not a SIP header (%s)?\n", from);
 			return SIP_GET_DEST_INVALID_URI;
@@ -19486,6 +19492,7 @@ static enum check_auth_result check_user_full(struct sip_pvt *p, struct sip_requ
 {
 	char *of, *name, *unused_password, *domain;
 	RAII_VAR(char *, ofbuf, NULL, ast_free); /* beware, everyone starts pointing to this */
+	RAII_VAR(char *, ofbuf2, NULL, ast_free);
 	RAII_VAR(char *, namebuf, NULL, ast_free);
 	enum check_auth_result res = AUTH_DONT_KNOW;
 	char calleridname[256];
@@ -19494,6 +19501,11 @@ static enum check_auth_result check_user_full(struct sip_pvt *p, struct sip_requ
 	terminate_uri(uri2);	/* trim extra stuff */
 
 	ofbuf = ast_strdup(sip_get_header(req, "From"));
+	ofbuf2 = ast_strdup(sip_get_header(req, "From"));
+	if (!strncasecmp(get_in_brackets(ofbuf2), "tel:", 4)){
+		ast_log(LOG_NOTICE,"PATCH tel:SCHEMA : USE  P-Asserted-Identity, Instead [From <tel:>]\n");
+		ofbuf = ast_strdup(sip_get_header(req, "P-Asserted-Identity"));
+	}
 	/* XXX here tries to map the username for invite things */
 
 	/* strip the display-name portion off the beginning of the FROM header. */
@@ -19830,7 +19842,7 @@ static void receive_message(struct sip_pvt *p, struct sip_request *req, struct a
 		sip_scheddestroy(p, DEFAULT_TRANS_TIMEOUT);
 		return;
 	case SIP_GET_DEST_INVALID_URI:
-		transmit_response(p, "416 Unsupported URI Scheme", req);
+		transmit_response(p, "416 Unsupported URI Scheme - TMA 19833", req);
 		sip_scheddestroy(p, DEFAULT_TRANS_TIMEOUT);
 		return;
 	default:
@@ -25927,7 +25939,7 @@ static int handle_request_options(struct sip_pvt *p, struct sip_request *req, st
 		msg = "404 Not Found";
 		switch (gotdest) {
 		case SIP_GET_DEST_INVALID_URI:
-			msg = "416 Unsupported URI scheme";
+			msg = "416 Unsupported URI scheme - TMA 25930";
 			break;
 		case SIP_GET_DEST_EXTEN_MATCHMORE:
 		case SIP_GET_DEST_REFUSED:
@@ -26768,7 +26780,7 @@ static int handle_request_invite(struct sip_pvt *p, struct sip_request *req, str
 		if (!replace_id && (gotdest != SIP_GET_DEST_EXTEN_FOUND)) {	/* No matching extension found */
 			switch(gotdest) {
 			case SIP_GET_DEST_INVALID_URI:
-				transmit_response_reliable(p, "416 Unsupported URI scheme", req);
+				transmit_response_reliable(p, "416 Unsupported URI scheme - TMA 26771", req);
 				break;
 			case SIP_GET_DEST_EXTEN_MATCHMORE:
 				if (ast_test_flag(&p->flags[1], SIP_PAGE2_ALLOWOVERLAP)
@@ -28678,7 +28690,7 @@ static int handle_request_subscribe(struct sip_pvt *p, struct sip_request *req, 
                 gotdest = get_destination(p, NULL, NULL);
 		if (gotdest != SIP_GET_DEST_EXTEN_FOUND) {
 			if (gotdest == SIP_GET_DEST_INVALID_URI) {
-				transmit_response(p, "416 Unsupported URI scheme", req);
+				transmit_response(p, "416 Unsupported URI scheme - TMA 28681", req);
 			} else {
 				transmit_response(p, "404 Not Found", req);
 			}

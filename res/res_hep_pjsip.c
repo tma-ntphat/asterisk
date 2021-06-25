@@ -89,6 +89,7 @@ static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
 	pjsip_cid_hdr *cid_hdr;
 	pjsip_from_hdr *from_hdr;
 	pjsip_to_hdr *to_hdr;
+    ast_debug(2, "TMA - logging_on_tx_msg - START");
 
 	capture_info = hepv3_create_capture_info(tdata->buf.start, (size_t)(tdata->buf.cur - tdata->buf.start));
 	if (!capture_info) {
@@ -159,6 +160,7 @@ static pj_bool_t logging_on_rx_msg(pjsip_rx_data *rdata)
 	char remote_buf[256];
 	char *uuid;
 	struct hepv3_capture_info *capture_info;
+    ast_debug(2, "TMA - logging_on_rx_msg - START");
 
 	capture_info = hepv3_create_capture_info(&rdata->pkt_info.packet, rdata->pkt_info.len);
 	if (!capture_info) {

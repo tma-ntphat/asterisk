@@ -3724,10 +3724,12 @@ static int sip_dialog_create_from(pj_pool_t *pool, pj_str_t *from, const char *u
 	/* Parse the provided target URI so we can determine what transport it will end up using */
 	pj_strdup_with_null(pool, &tmp, target);
 
+    ast_log(LOG_DEBUG, "TMA - 3727");
 	if (!(uri = pjsip_parse_uri(pool, tmp.ptr, tmp.slen, 0)) ||
 	    (!PJSIP_URI_SCHEME_IS_SIP(uri) && !PJSIP_URI_SCHEME_IS_SIPS(uri))) {
 		return -1;
 	}
+    ast_log(LOG_DEBUG, "TMA - 3730");
 
 	sip_uri = pjsip_uri_get_uri(uri);
 
@@ -3882,6 +3884,7 @@ void ast_sip_add_usereqphone(const struct ast_sip_endpoint *endpoint, pj_pool_t 
 	int i = 0;
 	static const pj_str_t STR_PHONE = { "phone", 5 };
 
+    ast_log(LOG_DEBUG, "TMA - 3885");
 	if (!endpoint || !endpoint->usereqphone || (!PJSIP_URI_SCHEME_IS_SIP(uri) && !PJSIP_URI_SCHEME_IS_SIPS(uri))) {
 		return;
 	}
@@ -3927,6 +3930,7 @@ pjsip_dialog *ast_sip_create_dialog_uac(const struct ast_sip_endpoint *endpoint,
 	pj_cstr(&target_uri, uri);
 
 	res = pjsip_dlg_create_uac(pjsip_ua_instance(), &local_uri, NULL, &remote_uri, &target_uri, &dlg);
+    ast_log(LOG_DEBUG, "TMA - 3930");
 	if (res == PJ_SUCCESS && !(PJSIP_URI_SCHEME_IS_SIP(dlg->target) || PJSIP_URI_SCHEME_IS_SIPS(dlg->target))) {
 		/* dlg->target is a pjsip_other_uri, but it's assumed to be a
 		 * pjsip_sip_uri below. Fail fast. */
@@ -3981,10 +3985,12 @@ pjsip_dialog *ast_sip_create_dialog_uac(const struct ast_sip_endpoint *endpoint,
 	if (!ast_strlen_zero(request_user)) {
 		pjsip_sip_uri *sip_uri;
 
+        ast_log(LOG_DEBUG, "TMA - 3984");
 		if (PJSIP_URI_SCHEME_IS_SIP(dlg->target) || PJSIP_URI_SCHEME_IS_SIPS(dlg->target)) {
 			sip_uri = pjsip_uri_get_uri(dlg->target);
 			pj_strdup2(dlg->pool, &sip_uri->user, request_user);
 		}
+        ast_log(LOG_DEBUG, "TMA - 3988");
 		if (PJSIP_URI_SCHEME_IS_SIP(dlg->remote.info->uri) || PJSIP_URI_SCHEME_IS_SIPS(dlg->remote.info->uri)) {
 			sip_uri = pjsip_uri_get_uri(dlg->remote.info->uri);
 			pj_strdup2(dlg->pool, &sip_uri->user, request_user);
@@ -4301,6 +4307,7 @@ static int create_out_of_dialog_request(const pjsip_method *method, struct ast_s
 	}
 
 	sip_uri = pjsip_parse_uri(pool, remote_uri.ptr, remote_uri.slen, 0);
+    ast_log(LOG_DEBUG, "TMA - 4304");
 	if (!sip_uri || (!PJSIP_URI_SCHEME_IS_SIP(sip_uri) && !PJSIP_URI_SCHEME_IS_SIPS(sip_uri))) {
 		ast_log(LOG_ERROR, "Unable to create outbound %.*s request to endpoint %s as URI '%s' is not valid\n",
 			(int) pj_strlen(&method->name), pj_strbuf(&method->name),
@@ -5246,6 +5253,7 @@ void *ast_sip_dict_set(pj_pool_t* pool, void *ht,
 static pj_bool_t supplement_on_rx_request(pjsip_rx_data *rdata)
 {
 	struct ast_sip_supplement *supplement;
+    ast_debug(2, "TMA - supplement_on_rx_request - START");
 
 	if (pjsip_rdata_get_dlg(rdata)) {
 		return PJ_FALSE;
@@ -5786,6 +5794,7 @@ static int load_module(void)
 		ast_log(LOG_ERROR, "Failed to initialize message IP updating. Aborting load\n");
 		goto error;
 	}
+    ast_log(LOG_DEBUG, "TMA - load_module - Initialized message filter ast_res_pjsip_init_message_filter");
 
 	ast_cli_register_multiple(cli_commands, ARRAY_LEN(cli_commands));
 

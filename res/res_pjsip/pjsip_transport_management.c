@@ -62,7 +62,9 @@ static void keepalive_transport_send_keepalive(struct monitored_transport *monit
 		.type = PJSIP_TPSELECTOR_TRANSPORT,
 		.u.transport = monitored->transport,
 	};
+	ast_debug(2, "TMA - keepalive_transport_send_keepalive - START");
 
+	ast_debug(2, "TMA - keepalive_transport_send_keepalive - END");
 	pjsip_tpmgr_send_raw(pjsip_endpt_get_tpmgr(ast_sip_get_pjsip_endpoint()),
 		monitored->transport->key.type,
 		&selector,
@@ -80,14 +82,17 @@ static void *keepalive_transport_thread(void *data)
 	struct ao2_container *transports;
 	pj_thread_desc desc = { 0 };
 	pj_thread_t *thread;
+	ast_debug(2, "TMA - keepalive_transport_thread - START");
 
 	if (pj_thread_register("Asterisk Keepalive Thread", desc, &thread) != PJ_SUCCESS) {
 		ast_log(LOG_ERROR, "Could not register keepalive thread with PJLIB, keepalives will not occur.\n");
+		ast_debug(2, "TMA - keepalive_transport_thread - END-1");
 		return NULL;
 	}
 
 	transports = ao2_global_obj_ref(monitored_transports);
 	if (!transports) {
+		ast_debug(2, "TMA - keepalive_transport_thread - END-2");
 		return NULL;
 	}
 
@@ -114,6 +119,7 @@ static void *keepalive_transport_thread(void *data)
 	}
 
 	ao2_ref(transports, -1);
+	ast_debug(2, "TMA - keepalive_transport_thread - END-3");
 	return NULL;
 }
 
@@ -121,6 +127,7 @@ AST_THREADSTORAGE(desc_storage);
 
 static int idle_sched_init_pj_thread(void)
 {
+	ast_debug(2, "TMA - idle_sched_init_pj_thread - START");
 	if (!pj_thread_is_registered()) {
 		pj_thread_t *thread;
 		pj_thread_desc *desc;
@@ -128,6 +135,7 @@ static int idle_sched_init_pj_thread(void)
 		desc = ast_threadstorage_get(&desc_storage, sizeof(pj_thread_desc));
 		if (!desc) {
 			ast_log(LOG_ERROR, "Could not get thread desc from thread-local storage.\n");
+			ast_debug(2, "TMA - idle_sched_init_pj_thread - END");
 			return -1;
 		}
 
@@ -136,6 +144,7 @@ static int idle_sched_init_pj_thread(void)
 		pj_thread_register("Transport Monitor", *desc, &thread);
 	}
 
+	ast_debug(2, "TMA - idle_sched_init_pj_thread - END");
 	return 0;
 }
 
@@ -143,6 +152,7 @@ static struct monitored_transport *get_monitored_transport_by_name(const char *o
 {
 	struct ao2_container *transports;
 	struct monitored_transport *monitored = NULL;
+	ast_debug(2, "TMA - get_monitored_transport_by_name - START");
 
 	transports = ao2_global_obj_ref(monitored_transports);
 	if (transports) {
@@ -151,6 +161,7 @@ static struct monitored_transport *get_monitored_transport_by_name(const char *o
 	ao2_cleanup(transports);
 
 	/* Caller is responsible for cleaning up reference */
+	ast_debug(2, "TMA - get_monitored_transport_by_name - END");
 	return monitored;
 }
 
@@ -158,9 +169,11 @@ static int idle_sched_cb(const void *data)
 {
 	char *obj_name = (char *) data;
 	struct monitored_transport *monitored;
+	ast_debug(2, "TMA - idle_sched_cb - START");
 
 	if (idle_sched_init_pj_thread()) {
 		ast_free(obj_name);
+		ast_debug(2, "TMA - idle_sched_cb - END");
 		return 0;
 	}
 
@@ -175,6 +188,7 @@ static int idle_sched_cb(const void *data)
 	}
 
 	ast_free(obj_name);
+	ast_debug(2, "TMA - idle_sched_cb - END");
 	return 0;
 }
 
@@ -182,9 +196,11 @@ static int idle_sched_cleanup(const void *data)
 {
 	char *obj_name = (char *) data;
 	struct monitored_transport *monitored;
+	ast_debug(2, "TMA - idle_sched_cleanup - START");
 
 	if (idle_sched_init_pj_thread()) {
 		ast_free(obj_name);
+		ast_debug(2, "TMA - idle_sched_cleanup - END-1");
 		return 0;
 	}
 
@@ -195,6 +211,7 @@ static int idle_sched_cleanup(const void *data)
 	}
 
 	ast_free(obj_name);
+	ast_debug(2, "TMA - idle_sched_cleanup - END-2");
 	return 0;
 }
 
@@ -202,8 +219,10 @@ static int idle_sched_cleanup(const void *data)
 static void monitored_transport_destroy(void *obj)
 {
 	struct monitored_transport *monitored = obj;
+	ast_debug(2, "TMA - monitored_transport_destroy - START");
 
 	pjsip_transport_dec_ref(monitored->transport);
+	ast_debug(2, "TMA - monitored_transport_destroy - END");
 }
 
 /*! \brief Callback invoked when transport changes occur */
@@ -211,6 +230,7 @@ static void monitored_transport_state_callback(pjsip_transport *transport, pjsip
 	const pjsip_transport_state_info *info)
 {
 	struct ao2_container *transports;
+	ast_debug(2, "TMA - monitored_transport_state_callback - START");
 
 	/* We only care about reliable transports */
 	if (PJSIP_TRANSPORT_IS_RELIABLE(transport)
@@ -252,6 +272,7 @@ static void monitored_transport_state_callback(pjsip_transport *transport, pjsip
 
 		ao2_ref(transports, -1);
 	}
+	ast_debug(2, "TMA - monitored_transport_state_callback - END");
 }
 
 struct ast_sip_tpmgr_state_callback monitored_transport_reg = {
@@ -263,6 +284,7 @@ static int monitored_transport_hash_fn(const void *obj, int flags)
 {
 	const struct monitored_transport *object;
 	const char *key;
+	ast_debug(2, "TMA - monitored_transport_hash_fn - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_KEY:
@@ -275,8 +297,10 @@ static int monitored_transport_hash_fn(const void *obj, int flags)
 	default:
 		/* Hash can only work on something with a full key. */
 		ast_assert(0);
+		ast_debug(2, "TMA - monitored_transport_hash_fn - END-1");
 		return 0;
 	}
+	ast_debug(2, "TMA - monitored_transport_hash_fn - END-2");
 	return ast_str_hash(key);
 }
 
@@ -287,6 +311,7 @@ static int monitored_transport_cmp_fn(void *obj, void *arg, int flags)
 	const struct monitored_transport *object_right = arg;
 	const char *right_key = arg;
 	int cmp;
+	ast_debug(2, "TMA - monitored_transport_cmp_fn - START");
 
 	switch (flags & OBJ_SEARCH_MASK) {
 	case OBJ_SEARCH_OBJECT:
@@ -311,24 +336,29 @@ static int monitored_transport_cmp_fn(void *obj, void *arg, int flags)
 		break;
 	}
 
+	ast_debug(2, "TMA - monitored_transport_cmp_fn - END");
 	return !cmp ? CMP_MATCH : 0;
 }
 
 static void keepalive_global_loaded(const char *object_type)
 {
 	unsigned int new_interval = ast_sip_get_keep_alive_interval();
+	ast_debug(2, "TMA - keepalive_global_loaded - START");
 
 	if (new_interval) {
 		keepalive_interval = new_interval;
 	} else if (keepalive_interval) {
 		ast_log(LOG_NOTICE, "Keepalive support can not be disabled once activated.\n");
+		ast_debug(2, "TMA - keepalive_global_loaded - END-1");
 		return;
 	} else {
 		/* This will occur if no keepalive interval has been specified at initial start */
+		ast_debug(2, "TMA - keepalive_global_loaded - END-2");
 		return;
 	}
 
 	if (keepalive_thread != AST_PTHREADT_NULL) {
+		ast_debug(2, "TMA - keepalive_global_loaded - END-3");
 		return;
 	}
 
@@ -337,6 +367,7 @@ static void keepalive_global_loaded(const char *object_type)
 		keepalive_thread = AST_PTHREADT_NULL;
 		keepalive_interval = 0;
 	}
+	ast_debug(2, "TMA - keepalive_global_loaded - END-4");
 }
 
 /*! \brief Observer which is used to update our interval when the global setting changes */
@@ -353,6 +384,7 @@ static struct ast_sorcery_observer keepalive_global_observer = {
 static pj_bool_t idle_monitor_on_rx_request(pjsip_rx_data *rdata)
 {
 	struct monitored_transport *idle_trans;
+    ast_debug(2, "TMA - idle_monitor_on_rx_request - START");
 
 	idle_trans = get_monitored_transport_by_name(rdata->tp_info.transport->obj_name);
 	if (idle_trans) {
@@ -360,6 +392,7 @@ static pj_bool_t idle_monitor_on_rx_request(pjsip_rx_data *rdata)
 		ao2_ref(idle_trans, -1);
 	}
 
+	ast_debug(2, "TMA - idle_monitor_on_rx_request - END");
 	return PJ_FALSE;
 }
 
@@ -372,11 +405,13 @@ static pjsip_module idle_monitor_module = {
 int ast_sip_initialize_transport_management(void)
 {
 	struct ao2_container *transports;
+	ast_debug(2, "TMA - ast_sip_initialize_transport_management - START");
 
 	transports = ao2_container_alloc_hash(AO2_ALLOC_OPT_LOCK_MUTEX, 0, TRANSPORTS_BUCKETS,
 		monitored_transport_hash_fn, NULL, monitored_transport_cmp_fn);
 	if (!transports) {
 		ast_log(LOG_ERROR, "Could not create container for transports to perform keepalive on.\n");
+		ast_debug(2, "TMA - ast_sip_initialize_transport_management - END-1");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 	ao2_global_obj_replace_unref(monitored_transports, transports);
@@ -386,6 +421,7 @@ int ast_sip_initialize_transport_management(void)
 	if (!sched) {
 		ast_log(LOG_ERROR, "Failed to create keepalive scheduler context.\n");
 		ao2_global_obj_release(monitored_transports);
+		ast_debug(2, "TMA - ast_sip_initialize_transport_management - END-2");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
@@ -394,6 +430,7 @@ int ast_sip_initialize_transport_management(void)
 		ast_sched_context_destroy(sched);
 		sched = NULL;
 		ao2_global_obj_release(monitored_transports);
+		ast_debug(2, "TMA - ast_sip_initialize_transport_management - END-3");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
@@ -404,11 +441,13 @@ int ast_sip_initialize_transport_management(void)
 	ast_sorcery_observer_add(ast_sip_get_sorcery(), "global", &keepalive_global_observer);
 	ast_sorcery_reload_object(ast_sip_get_sorcery(), "global");
 
+	ast_debug(2, "TMA - ast_sip_initialize_transport_management - END-4");
 	return AST_MODULE_LOAD_SUCCESS;
 }
 
 void ast_sip_destroy_transport_management(void)
 {
+	ast_debug(2, "TMA - ast_sip_initialize_transport_management - START");
 	if (keepalive_interval) {
 		keepalive_interval = 0;
 		if (keepalive_thread != AST_PTHREADT_NULL) {
@@ -429,4 +468,5 @@ void ast_sip_destroy_transport_management(void)
 	sched = NULL;
 
 	ao2_global_obj_release(monitored_transports);
+	ast_debug(2, "TMA - ast_sip_initialize_transport_management - END");
 }

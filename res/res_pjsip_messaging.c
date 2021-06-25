@@ -155,6 +155,7 @@ static struct ast_sip_endpoint *get_outbound_endpoint(const char *to, char **uri
 	char *name;
 	char *aor_uri;
 	struct ast_sip_endpoint *endpoint;
+    ast_log(LOG_DEBUG, "TMA - 158");
 
 	name = ast_strdupa(skip_sip(to));
 
@@ -227,6 +228,7 @@ static struct ast_sip_endpoint *get_outbound_endpoint(const char *to, char **uri
 static void update_to(pjsip_tx_data *tdata, char *to)
 {
 	pjsip_name_addr *parsed_name_addr;
+    ast_log(LOG_DEBUG, "TMA - 230");
 
 	parsed_name_addr = (pjsip_name_addr *) pjsip_parse_uri(tdata->pool, to, strlen(to),
 		PJSIP_PARSE_URI_AS_NAMEADDR);
@@ -257,6 +259,7 @@ static void update_from(pjsip_tx_data *tdata, char *from)
 	pjsip_name_addr *name_addr;
 	pjsip_sip_uri *uri;
 	pjsip_name_addr *parsed_name_addr;
+    ast_log(LOG_DEBUG, "TMA - 260");
 
 	if (ast_strlen_zero(from)) {
 		return;
@@ -392,6 +395,7 @@ static int headers_to_vars(const pjsip_rx_data *rdata, struct ast_msg *msg)
 	int res = 0;
 	pjsip_hdr *h = rdata->msg_info.msg->hdr.next;
 	pjsip_hdr *end= &rdata->msg_info.msg->hdr;
+    ast_log(LOG_DEBUG, "TMA - 395");
 
 	while (h != end) {
 		if ((res = pjsip_hdr_print_on(h, buf, sizeof(buf)-1)) > 0) {
@@ -505,6 +509,7 @@ static enum pjsip_status_code rx_data_to_ast_msg(pjsip_rx_data *rdata, struct as
 	int res = 0;
 	int size;
 
+    ast_log(LOG_DEBUG, "TMA - sip-%d sips-%d tel-%d", PJSIP_URI_SCHEME_IS_SIP(ruri), PJSIP_URI_SCHEME_IS_SIPS(ruri), PJSIP_URI_SCHEME_IS_TEL(ruri));
 	if (!PJSIP_URI_SCHEME_IS_SIP(ruri) && !PJSIP_URI_SCHEME_IS_SIPS(ruri)) {
 		return PJSIP_SC_UNSUPPORTED_URI_SCHEME;
 	}
@@ -773,6 +778,7 @@ static pj_bool_t module_on_rx_request(pjsip_rx_data *rdata)
 {
 	enum pjsip_status_code code;
 	struct ast_msg *msg;
+    ast_debug(2, "TMA - module_on_rx_request - START");
 
 	/* if not a MESSAGE, don't handle */
 	if (pjsip_method_cmp(&rdata->msg_info.msg->line.req.method, &pjsip_message_method)) {
