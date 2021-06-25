@@ -116,6 +116,7 @@ static void print_pval(FILE *fin, pval *item, int depth)
 {
 	int i;
 	pval *lp;
+    ast_debug(2, "TMA - print_pval - START");
 
 	for (i=0; i<depth; i++) {
 		fprintf(fin, "\t"); /* depth == indentation */
@@ -368,26 +369,32 @@ static void print_pval(FILE *fin, pval *item, int depth)
 		fprintf(fin,"}\n");
 		break;
 	}
+    ast_debug(2, "TMA - print_pval - END");
 }
 
 static void print_pval_list(FILE *fin, pval *item, int depth)
 {
 	pval *i;
+    ast_debug(2, "TMA - print_pval_list - START");
 
 	for (i=item; i; i=i->next) {
 		print_pval(fin, i, depth);
 	}
+    ast_debug(2, "TMA - print_pval_list - END");
 }
 
 void ael2_print(char *fname, pval *tree)
 {
 	FILE *fin = fopen(fname,"w");
+    ast_debug(2, "TMA - ael2_print - START");
 	if ( !fin ) {
 		ast_log(LOG_ERROR, "Couldn't open %s for writing.\n", fname);
+        ast_debug(2, "TMA - ael2_print - END - 1");
 		return;
 	}
 	print_pval_list(fin, tree, 0);
 	fclose(fin);
+    ast_debug(2, "TMA - ael2_print - END");
 }
 
 
@@ -401,6 +408,7 @@ void traverse_pval_item_template(pval *item, int depth)/* depth comes in handy f
 														  but you may not need it */
 {
 	pval *lp;
+    ast_debug(2, "TMA - traverse_pval_item_template - START");
 
 	switch ( item->type ) {
 	case PV_WORD:
@@ -629,16 +637,19 @@ void traverse_pval_item_template(pval *item, int depth)/* depth comes in handy f
 		traverse_pval_item_template(item->u1.statements,depth+1);
 		break;
 	}
+    ast_debug(2, "TMA - traverse_pval_item_template - END");
 }
 
 void traverse_pval_template(pval *item, int depth) /* depth comes in handy for a pretty print (indentation),
 													  but you may not need it */
 {
 	pval *i;
+    ast_debug(2, "TMA - traverse_pval_template - START");
 
 	for (i=item; i; i=i->next) {
 		traverse_pval_item_template(i, depth);
 	}
+    ast_debug(2, "TMA - traverse_pval_template - END");
 }
 
 
@@ -650,6 +661,7 @@ void traverse_pval_template(pval *item, int depth) /* depth comes in handy for a
 static void check_macro_returns(pval *macro)
 {
 	pval *i;
+    ast_debug(2, "TMA - check_macro_returns - START");
 	if (!macro->u3.macro_statements)
 	{
 		pval *z = calloc(1, sizeof(struct pval));
@@ -664,6 +676,7 @@ static void check_macro_returns(pval *macro)
 		z->filename = strdup(macro->filename);
 
 		macro->u3.macro_statements = z;
+        ast_debug(2, "TMA - check_macro_returns - END - 1");
 		return;
 	}
 	for (i=macro->u3.macro_statements; i; i=i->next) {
@@ -682,10 +695,12 @@ static void check_macro_returns(pval *macro)
 				z->filename = strdup(macro->filename);
 
 				i->next = z;
+                ast_debug(2, "TMA - check_macro_returns - END - 2");
 				return;
 			}
 		}
 	}
+    ast_debug(2, "TMA - check_macro_returns - END");
 	return;
 }
 
@@ -695,10 +710,13 @@ static int extension_matches(pval *here, const char *exten, const char *pattern)
 {
 	int err1;
 	regex_t preg;
+    ast_debug(2, "TMA - extension_matches - START");
 
 	/* simple case, they match exactly, the pattern and exten name */
-	if (strcmp(pattern,exten) == 0)
+	if (strcmp(pattern,exten) == 0) {
+        ast_debug(2, "TMA - extension_matches - END - 1");
 		return 1;
+    }
 
 	if (pattern[0] == '_') {
 		char reg1[2000];
@@ -708,6 +726,7 @@ static int extension_matches(pval *here, const char *exten, const char *pattern)
 		if ( strlen(pattern)*5 >= 2000 ) /* safety valve */ {
 			ast_log(LOG_ERROR,"Error: The pattern %s is way too big. Pattern matching cancelled.\n",
 					pattern);
+            ast_debug(2, "TMA - extension_matches - END - 2");
 			return 0;
 		}
 		/* form a regular expression from the pattern, and then match it against exten */
@@ -778,6 +797,7 @@ static int extension_matches(pval *here, const char *exten, const char *pattern)
 			regfree(&preg);
 			ast_log(LOG_WARNING, "Regcomp of %s failed, error code %d\n",
 					reg1, err1);
+            ast_debug(2, "TMA - extension_matches - END - 3");
 			return 0;
 		}
 		err1 = regexec(&preg, exten, 0, 0, 0);
@@ -786,14 +806,17 @@ static int extension_matches(pval *here, const char *exten, const char *pattern)
 		if ( err1 ) {
 			/* ast_log(LOG_NOTICE,"*****************************[%d]Extension %s did not match %s(%s)\n",
 			   err1,exten, pattern, reg1); */
+            ast_debug(2, "TMA - extension_matches - END - 4");
 			return 0; /* no match */
 		} else {
 			/* ast_log(LOG_NOTICE,"*****************************Extension %s matched %s\n",
 			   exten, pattern); */
+            ast_debug(2, "TMA - extension_matches - END - 5");
 			return 1;
 		}
 	}
 
+    ast_debug(2, "TMA - extension_matches - END");
 	return 0;
 }
 
@@ -801,16 +824,19 @@ static int extension_matches(pval *here, const char *exten, const char *pattern)
 static void check_expr2_input(pval *expr, char *str)
 {
 	int spaces = strspn(str,"\t \n");
+    ast_debug(2, "TMA - check_expr2_input - START");
 	if ( !strncmp(str+spaces,"$[",2) ) {
 		ast_log(LOG_WARNING, "Warning: file %s, line %d-%d: The expression '%s' is redundantly wrapped in '$[ ]'. \n",
 				expr->filename, expr->startline, expr->endline, str);
 		warns++;
 	}
+    ast_debug(2, "TMA - check_expr2_input - END");
 }
 
 static void check_includes(pval *includes)
 {
 	struct pval *p4;
+    ast_debug(2, "TMA - check_includes - START");
 	for (p4=includes->u1.list; p4; p4=p4->next) {
 		/* for each context pointed to, find it, then find a context/label that matches the
 		   target here! */
@@ -824,6 +850,7 @@ static void check_includes(pval *includes)
 			warns++;
 		}
 	}
+    ast_debug(2, "TMA - check_includes - END");
 }
 
 
@@ -833,11 +860,13 @@ static void check_timerange(pval *p)
 	char *e;
 	int s1, s2;
 	int e1, e2;
+    ast_debug(2, "TMA - check_timerange - START");
 
 	times = ast_strdupa(p->u1.str);
 
 	/* Star is all times */
 	if (ast_strlen_zero(times) || !strcmp(times, "*")) {
+        ast_debug(2, "TMA - check_timerange - END - 1");
 		return;
 	}
 	/* Otherwise expect a range */
@@ -846,6 +875,7 @@ static void check_timerange(pval *p)
 		ast_log(LOG_WARNING, "Warning: file %s, line %d-%d: The time range format (%s) requires a '-' surrounded by two 24-hour times of day!\n",
 				p->filename, p->startline, p->endline, times);
 		warns++;
+        ast_debug(2, "TMA - check_timerange - END - 2");
 		return;
 	}
 	*e = '\0';
@@ -880,6 +910,7 @@ static void check_timerange(pval *p)
 				p->filename, p->startline, p->endline, e);
 		warns++;
 	}
+    ast_debug(2, "TMA - check_timerange - END");
 	return;
 }
 
@@ -901,12 +932,16 @@ static void check_dow(pval *DOW)
 	char *c;
 	/* The following line is coincidence, really! */
 	int s, e;
+    ast_debug(2, "TMA - check_dow - START");
 
 	dow = ast_strdupa(DOW->u1.str);
 
 	/* Check for all days */
 	if (ast_strlen_zero(dow) || !strcmp(dow, "*"))
+	{
+        ast_debug(2, "TMA - check_dow - END - 1");
 		return;
+    }
 	/* Get start and ending days */
 	c = strchr(dow, '-');
 	if (c) {
@@ -932,6 +967,7 @@ static void check_dow(pval *DOW)
 		}
 	} else
 		e = s;
+    ast_debug(2, "TMA - check_dow - END");
 }
 
 static void check_day(pval *DAY)
@@ -940,11 +976,13 @@ static void check_day(pval *DAY)
 	char *c;
 	/* The following line is coincidence, really! */
 	int s, e;
+    ast_debug(2, "TMA - check_day - START");
 
 	day = ast_strdupa(DAY->u1.str);
 
 	/* Check for all days */
 	if (ast_strlen_zero(day) || !strcmp(day, "*")) {
+        ast_debug(2, "TMA - check_day - END - 1");
 		return;
 	}
 	/* Get start and ending days */
@@ -979,6 +1017,7 @@ static void check_day(pval *DAY)
 		e--;
 	} else
 		e = s;
+    ast_debug(2, "TMA - check_day - END");
 }
 
 static char *months[] =
@@ -1003,12 +1042,16 @@ static void check_month(pval *MON)
 	char *c;
 	/* The following line is coincidence, really! */
 	int s, e;
+    ast_debug(2, "TMA - check_month - START");
 
 	mon = ast_strdupa(MON->u1.str);
 
 	/* Check for all days */
 	if (ast_strlen_zero(mon) || !strcmp(mon, "*"))
+    {
+        ast_debug(2, "TMA - check_month - END - 1");
 		return ;
+}
 	/* Get start and ending days */
 	c = strchr(mon, '-');
 	if (c) {
@@ -1033,17 +1076,20 @@ static void check_month(pval *MON)
 		}
 	} else
 		e = s;
+    ast_debug(2, "TMA - check_month - END");
 }
 
 static int check_break(pval *item)
 {
 	pval *p = item;
+    ast_debug(2, "TMA - check_break - START");
 
 	while( p && p->type != PV_MACRO && p->type != PV_CONTEXT ) /* early cutout, sort of */ {
 		/* a break is allowed in WHILE, FOR, CASE, DEFAULT, PATTERN; otherwise, it don't make
 		   no sense */
 		if( p->type == PV_CASE || p->type == PV_DEFAULT || p->type == PV_PATTERN
 			|| p->type == PV_WHILE || p->type == PV_FOR   ) {
+            ast_debug(2, "TMA - check_break - END - 1");
 			return 1;
 		}
 		p = p->dad;
@@ -1052,17 +1098,20 @@ static int check_break(pval *item)
 			item->filename, item->startline, item->endline);
 	errs++;
 
+    ast_debug(2, "TMA - check_break - END");
 	return 0;
 }
 
 static int check_continue(pval *item)
 {
 	pval *p = item;
+    ast_debug(2, "TMA - check_continue - START");
 
 	while( p && p->type != PV_MACRO && p->type != PV_CONTEXT ) /* early cutout, sort of */ {
 		/* a break is allowed in WHILE, FOR, CASE, DEFAULT, PATTERN; otherwise, it don't make
 		   no sense */
 		if( p->type == PV_WHILE || p->type == PV_FOR   ) {
+            ast_debug(2, "TMA - check_continue - END - 1");
 			return 1;
 		}
 		p = p->dad;
@@ -1071,32 +1120,39 @@ static int check_continue(pval *item)
 			item->filename, item->startline, item->endline);
 	errs++;
 
+    ast_debug(2, "TMA - check_continue - END");
 	return 0;
 }
 
 static struct pval *in_macro(pval *item)
 {
 	struct pval *curr;
+    ast_debug(2, "TMA - in_macro - START");
 	curr = item;
 	while( curr ) {
 		if( curr->type == PV_MACRO  ) {
+            ast_debug(2, "TMA - in_macro - END - 1");
 			return curr;
 		}
 		curr = curr->dad;
 	}
+    ast_debug(2, "TMA - in_macro - END");
 	return 0;
 }
 
 static struct pval *in_context(pval *item)
 {
 	struct pval *curr;
+    ast_debug(2, "TMA - in_context - START");
 	curr = item;
 	while( curr ) {
 		if( curr->type == PV_MACRO || curr->type == PV_CONTEXT ) {
+            ast_debug(2, "TMA - in_context - END - 1");
 			return curr;
 		}
 		curr = curr->dad;
 	}
+    ast_debug(2, "TMA - in_context - END");
 	return 0;
 }
 
@@ -1108,6 +1164,7 @@ static void check_label(pval *item)
 	struct pval *curr;
 	struct pval *x;
 	int alright = 0;
+    ast_debug(2, "TMA - check_label - START");
 
 	/* A label outside an extension just plain does not make sense! */
 
@@ -1148,6 +1205,7 @@ static void check_label(pval *item)
 		errs++;
 	}
 	/* printf("<<<<< check_label:   ====\n"); */
+    ast_debug(2, "TMA - check_label - END");
 }
 
 static pval *get_goto_target(pval *item)
@@ -1155,13 +1213,16 @@ static pval *get_goto_target(pval *item)
 	/* just one item-- the label should be in the current extension */
 	pval *curr_ext = get_extension_or_contxt(item); /* containing exten, or macro */
 	pval *curr_cont;
+    ast_debug(2, "TMA - get_goto_target - START");
 
 	if (!item->u1.list) {
+        ast_debug(2, "TMA - get_goto_target - END - 1");
 		return NULL;
 	}
 
 	if (!item->u1.list->next && !strstr((item->u1.list)->u1.str,"${")) {
 		struct pval *x = find_label_in_current_extension((char*)((item->u1.list)->u1.str), curr_ext);
+        ast_debug(2, "TMA - get_goto_target - END - 2");
 			return x;
 	}
 
@@ -1172,6 +1233,7 @@ static pval *get_goto_target(pval *item)
 		if (!strstr((item->u1.list)->u1.str,"${")
 			&& !strstr(item->u1.list->next->u1.str,"${") ) /* Don't try to match variables */ {
 			struct pval *x = find_label_in_current_context((char *)item->u1.list->u1.str, (char *)item->u1.list->next->u1.str, curr_cont);
+            ast_debug(2, "TMA - get_goto_target - END - 3");
 				return x;
 		}
 	}
@@ -1208,6 +1270,7 @@ static pval *get_goto_target(pval *item)
 									struct pval *x3;
 									x3 = find_label_in_current_context((char *)item->u1.list->next->u1.str, (char *)item->u1.list->next->next->u1.str, that_other_context);
 									if (x3) {
+                                        ast_debug(2, "TMA - get_goto_target - END - 4");
 										return x3;
 									}
 								}
@@ -1216,15 +1279,19 @@ static pval *get_goto_target(pval *item)
 					}
 				}
 			}
+            ast_debug(2, "TMA - get_goto_target - END - 5");
 			return x;
 		}
 	}
+    ast_debug(2, "TMA - get_goto_target - END");
 	return NULL;
 }
 
 static void check_goto(pval *item)
 {
+    ast_debug(2, "TMA - check_goto - START");
 	if (!item->u1.list) {
+        ast_debug(2, "TMA - check_goto - END - 1");
 		return;
 	}
 
@@ -1249,7 +1316,10 @@ static void check_goto(pval *item)
 			errs++;
 		}
 		else
+        {
+            ast_debug(2, "TMA - check_goto - END - 2");
 			return;
+        }
 	}
 
 	/* TWO items */
@@ -1271,7 +1341,10 @@ static void check_goto(pval *item)
 				errs++;
 			}
 			else
+            {
+                ast_debug(2, "TMA - check_goto - END - 3");
 				return;
+        }
 		}
 	}
 
@@ -1373,15 +1446,18 @@ static void check_goto(pval *item)
 			}
 		}
 	}
+    ast_debug(2, "TMA - check_goto - END");
 }
 
 
 static void find_pval_goto_item(pval *item, int lev)
 {
 	struct pval *p4;
+    ast_debug(2, "TMA - find_pval_goto_item - STARTT");
 
 	if (lev>100) {
 		ast_log(LOG_ERROR,"find_pval_goto in infinite loop! item_type: %u\n\n", item->type);
+        ast_debug(2, "TMA - find_pval_goto_item - END - 1");
 		return;
 	}
 
@@ -1545,16 +1621,19 @@ static void find_pval_goto_item(pval *item, int lev)
 	default:
 		break;
 	}
+    ast_debug(2, "TMA - find_pval_goto_item - END");
 }
 
 static void find_pval_gotos(pval *item,int lev)
 {
 	pval *i;
+    ast_debug(2, "TMA - find_pval_gotos - START");
 
 	for (i=item; i; i=i->next) {
 		/* printf("About to call pval_goto_item, itemcount=%d, itemtype=%d\n", item_count, i->type); */
 		find_pval_goto_item(i, lev);
 	}
+    ast_debug(2, "TMA - find_pval_gotos - END");
 }
 
 
@@ -1563,6 +1642,7 @@ static void find_pval_gotos(pval *item,int lev)
 static struct pval *match_pval_item(pval *item)
 {
 	pval *x;
+    ast_debug(2, "TMA - match_pval_item - START");
 
 	switch ( item->type ) {
 	case PV_MACRO:
@@ -1580,6 +1660,7 @@ static struct pval *match_pval_item(pval *item)
 
 			if (return_on_context_match && !strcmp(item->u1.str, match_context)) /* if we're just searching for a context, don't bother descending into them */ {
 				/* printf("Returning on matching macro %s\n", match_context); */
+                ast_debug(2, "TMA - match_pval_item - END - 1");
 				return item;
 			}
 
@@ -1588,6 +1669,7 @@ static struct pval *match_pval_item(pval *item)
 				/* printf("Descending into matching macro %s/%s\n", match_context, item->u1.str); */
 				if ((x=match_pval(item->u3.macro_statements)))  {
 					/* printf("Responded with pval match %x\n", x); */
+                    ast_debug(2, "TMA - match_pval_item - END - 2");
 					return x;
 				}
 			}
@@ -1607,6 +1689,7 @@ static struct pval *match_pval_item(pval *item)
 			if (return_on_context_match && !strcmp(item->u1.str, match_context)) {
 				/* printf("Returning on matching context %s\n", match_context); */
 				/* printf("non-CONTEXT: Responded with pval match %x\n", x); */
+                ast_debug(2, "TMA - match_pval_item - END - 3");
 				return item;
 			}
 
@@ -1614,6 +1697,7 @@ static struct pval *match_pval_item(pval *item)
 				/* printf("Descending into matching context %s\n", match_context); */
 				if ((x=match_pval(item->u2.statements))) /* if we're just searching for a context, don't bother descending into them */ {
 					/* printf("CONTEXT: Responded with pval match %x\n", x); */
+                    ast_debug(2, "TMA - match_pval_item - END - 4");
 					return x;
 				}
 			}
@@ -1629,6 +1713,7 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in CASE\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("CASE: Responded with pval match %x\n", x); */
+            ast_debug(2, "TMA - match_pval_item - END - 5");
 			return x;
 		}
 		break;
@@ -1640,7 +1725,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in PATTERN\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("PATTERN: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 6");
+            return x;
 		}
 		break;
 
@@ -1651,7 +1737,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in DEFAULT\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("DEFAULT: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 7");
+            return x;
 		}
 		break;
 
@@ -1662,7 +1749,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in CATCH\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("CATCH: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 8");
+            return x;
 		}
 		break;
 
@@ -1672,7 +1760,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in STATEMENTBLOCK\n"); */
 		if ((x=match_pval(item->u1.list))) {
 			/* printf("STATEMENTBLOCK: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 9");
+            return x;
 		}
 		break;
 
@@ -1691,7 +1780,8 @@ static struct pval *match_pval_item(pval *item)
 		} else {
 			if (!strcmp(match_label, item->u1.str)) {
 				/* printf("LABEL: Responded with pval match %x\n", x); */
-				return item;
+                ast_debug(2, "TMA - match_pval_item - END - 10");
+                return item;
 			}
 		}
 		break;
@@ -1706,7 +1796,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in FOR\n"); */
 		if ((x=match_pval(item->u4.for_statements))) {
 			/* printf("FOR: Responded with pval match %x\n", x);*/
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 11");
+            return x;
 		}
 		break;
 
@@ -1718,7 +1809,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in WHILE\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("WHILE: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 12");
+            return x;
 		}
 		break;
 
@@ -1746,12 +1838,14 @@ static struct pval *match_pval_item(pval *item)
 		*/
 		/* printf("    matching in IF/IFTIME/RANDOM\n"); */
 		if ((x=match_pval(item->u2.statements))) {
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 13");
+            return x;
 		}
 		if (item->u3.else_statements) {
 			if ((x=match_pval(item->u3.else_statements))) {
 				/* printf("IF/IFTIME/RANDOM: Responded with pval match %x\n", x); */
-				return x;
+                ast_debug(2, "TMA - match_pval_item - END - 14");
+                return x;
 			}
 		}
 		break;
@@ -1765,7 +1859,8 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in SWITCH\n"); */
 		if ((x=match_pval(item->u2.statements))) {
 			/* printf("SWITCH: Responded with pval match %x\n", x); */
-			return x;
+            ast_debug(2, "TMA - match_pval_item - END - 15");
+            return x;
 		}
 		break;
 
@@ -1785,17 +1880,27 @@ static struct pval *match_pval_item(pval *item)
 					while (p5 && p5->type == PV_LABEL)  /* find the first non-label statement in this context. If it exists, there's a "1" */
 						p5 = p5->next;
 					if (p5)
+                    {
+                        ast_debug(2, "TMA - match_pval_item - END - 16");
 						return p5;
+                    }
 					else
+                    {
+                        ast_debug(2, "TMA - match_pval_item - END - 17");
 						return 0;
+                    }
 				}
 				else
+                {
+                    ast_debug(2, "TMA - match_pval_item - END - 18");
 					return 0;
+                }
 			}
 
 			if ((x=match_pval(item->u2.statements))) {
 				/* printf("EXTENSION: Responded with pval match %x\n", x); */
-				return x;
+                ast_debug(2, "TMA - match_pval_item - END - 19");
+                return x;
 			}
 		} else {
 			/* printf("Skipping exten %s\n", item->u1.str); */
@@ -1805,12 +1910,14 @@ static struct pval *match_pval_item(pval *item)
 		/* printf("    matching in default = %d\n", item->type); */
 		break;
 	}
+    ast_debug(2, "TMA - match_pval_item - END");
 	return 0;
 }
 
 struct pval *match_pval(pval *item)
 {
 	pval *i;
+    ast_debug(2, "TMA - match_pval - START");
 
 	for (i=item; i; i=i->next) {
 		pval *x;
@@ -1818,20 +1925,24 @@ struct pval *match_pval(pval *item)
 
 		if ((x = match_pval_item(i))) {
 			/* printf("match_pval: returning x=%x\n", (int)x); */
+            ast_debug(2, "TMA - match_pval - END - 1");
 			return x; /* cut the search short */
 		}
 	}
+    ast_debug(2, "TMA - match_pval - END");
 	return 0;
 }
 
 #if 0
 int count_labels_in_current_context(char *label)
 {
+    ast_debug(2, "TMA - count_labels_in_current_context - START");
 	label_count = 0;
 	count_labels = 1;
 	return_on_context_match = 0;
 	match_pval(current_context->u2.statements);
 
+    ast_debug(2, "TMA - count_labels_in_current_context - END");
 	return label_count;
 }
 #endif
@@ -1841,6 +1952,7 @@ struct pval *find_first_label_in_current_context(char *label, pval *curr_cont)
 	/* printf("  --- Got args %s, %s\n", exten, label); */
 	struct pval *ret;
 	struct pval *p3;
+    ast_debug(2, "TMA - find_first_label_in_current_context - START");
 
 	count_labels = 0;
 	return_on_context_match = 0;
@@ -1850,7 +1962,10 @@ struct pval *find_first_label_in_current_context(char *label, pval *curr_cont)
 
 	ret =  match_pval(curr_cont);
 	if (ret)
+    {
+        ast_debug(2, "TMA - find_first_label_in_current_context - END - 1");
 		return ret;
+}
 
 	/* the target of the goto could be in an included context!! Fancy that!! */
 	/* look for includes in the current context */
@@ -1867,12 +1982,14 @@ struct pval *find_first_label_in_current_context(char *label, pval *curr_cont)
 					struct pval *x3;
 					x3 = find_first_label_in_current_context(label, that_context);
 					if (x3) {
+                        ast_debug(2, "TMA - find_first_label_in_current_context - END - 2");
 						return x3;
 					}
 				}
 			}
 		}
 	}
+    ast_debug(2, "TMA - find_first_label_in_current_context - END");
 	return 0;
 }
 
@@ -1881,6 +1998,7 @@ struct pval *find_label_in_current_context(char *exten, char *label, pval *curr_
 	/* printf("  --- Got args %s, %s\n", exten, label); */
 	struct pval *ret;
 	struct pval *p3;
+    ast_debug(2, "TMA - find_label_in_current_context - START");
 
 	count_labels = 0;
 	return_on_context_match = 0;
@@ -1889,7 +2007,10 @@ struct pval *find_label_in_current_context(char *exten, char *label, pval *curr_
 	match_label = label;
 	ret =  match_pval(curr_cont->u2.statements);
 	if (ret)
+    {
+        ast_debug(2, "TMA - find_label_in_current_context - END - 1");
 		return ret;
+}
 
 	/* the target of the goto could be in an included context!! Fancy that!! */
 	/* look for includes in the current context */
@@ -1906,28 +2027,33 @@ struct pval *find_label_in_current_context(char *exten, char *label, pval *curr_
 					struct pval *x3;
 					x3 = find_label_in_current_context(exten, label, that_context);
 					if (x3) {
+                        ast_debug(2, "TMA - find_label_in_current_context - END - 2");
 						return x3;
 					}
 				}
 			}
 		}
 	}
+    ast_debug(2, "TMA - find_label_in_current_context - END");
 	return 0;
 }
 
 static struct pval *find_label_in_current_extension(const char *label, pval *curr_ext)
 {
+    ast_debug(2, "TMA - find_label_in_current_extension - START");
 	/* printf("  --- Got args %s\n", label); */
 	count_labels = 0;
 	return_on_context_match = 0;
 	match_context = "*";
 	match_exten = "*";
 	match_label = label;
+    ast_debug(2, "TMA - find_label_in_current_extension - END");
 	return match_pval(curr_ext);
 }
 
 static struct pval *find_label_in_current_db(const char *context, const char *exten, const char *label)
 {
+    ast_debug(2, "TMA - find_label_in_current_db - START");
 	/* printf("  --- Got args %s, %s, %s\n", context, exten, label); */
 	count_labels = 0;
 	return_on_context_match = 0;
@@ -1936,6 +2062,7 @@ static struct pval *find_label_in_current_db(const char *context, const char *ex
 	match_exten = exten;
 	match_label = label;
 
+    ast_debug(2, "TMA - find_label_in_current_db - END");
 	return match_pval(current_db);
 }
 

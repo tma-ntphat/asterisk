@@ -85,6 +85,7 @@ static unsigned int registrar_get_expiration(const struct ast_sip_aor *aor, cons
 {
 	pjsip_expires_hdr *expires;
 	unsigned int expiration = aor->default_expiration;
+    ast_log(LOG_DEBUG, "TMA - registrar_get_expiration - START");
 
 	if (contact && contact->expires != PJSIP_EXPIRES_NOT_SPECIFIED) {
 		/* Expiration was provided with the contact itself */
@@ -96,6 +97,7 @@ static unsigned int registrar_get_expiration(const struct ast_sip_aor *aor, cons
 
 	/* If the value has explicitly been set to 0, do not enforce */
 	if (!expiration) {
+        ast_log(LOG_DEBUG, "TMA - registrar_get_expiration - END - 1");
 		return expiration;
 	}
 
@@ -106,6 +108,7 @@ static unsigned int registrar_get_expiration(const struct ast_sip_aor *aor, cons
 		expiration = aor->maximum_expiration;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - registrar_get_expiration - END");
 	return expiration;
 }
 
@@ -123,17 +126,21 @@ static int registrar_find_contact(void *obj, void *arg, int flags)
 	struct ast_sip_contact *contact = obj;
 	const struct registrar_contact_details *details = arg;
 	pjsip_uri *contact_uri;
+    ast_log(LOG_DEBUG, "TMA - registrar_find_contact - START");
 
 	if (ast_tvzero(contact->expiration_time)) {
+        ast_log(LOG_DEBUG, "TMA - registrar_find_contact - END - 1");
 		return 0;
 	}
 
 	contact_uri = pjsip_parse_uri(details->pool, (char*)contact->uri, strlen(contact->uri), 0);
 	if (!contact_uri) {
 		ast_log(LOG_WARNING, "Unable to parse contact URI from '%s'.\n", contact->uri);
+        ast_log(LOG_DEBUG, "TMA - registrar_find_contact - END - 2");
 		return 0;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - registrar_find_contact - END");
 	return (pjsip_uri_cmp(PJSIP_URI_IN_CONTACT_HDR, details->uri, contact_uri) == PJ_SUCCESS) ? CMP_MATCH : 0;
 }
 
@@ -146,6 +153,7 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 	struct registrar_contact_details details = {
 		.pool = pool,
 	};
+    ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - START");
 
 	for (; (contact = (pjsip_contact_hdr *) pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CONTACT, contact->next)); pj_pool_reset(pool)) {
 		unsigned int expiration = registrar_get_expiration(aor, contact, rdata);
@@ -155,6 +163,7 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 		if (contact->star) {
 			/* The expiration MUST be 0 when a '*' contact is used and there must be no other contact */
 			if (expiration != 0 || previous) {
+				ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - END - 1");
 				return -1;
 			}
 			/* Count all contacts to delete */
@@ -163,6 +172,7 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 			continue;
 		} else if (previous && previous->star) {
 			/* If there is a previous contact and it is a '*' this is a deal breaker */
+			ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - END - 2");
 			return -1;
 		}
 		previous = contact;
@@ -177,11 +187,13 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 		/* pjsip_uri_print returns -1 if there's not enough room in the buffer */
 		if (pjsip_uri_print(PJSIP_URI_IN_CONTACT_HDR, details.uri, contact_uri, sizeof(contact_uri)) < 0) {
 			/* If the total length of the uri is greater than pjproject can handle, go no further */
+			ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - END - 3");
 			return -1;
 		}
 
 		if (details.uri->host.slen >= pj_max_hostname) {
 			/* If the length of the hostname is greater than pjproject can handle, go no further */
+			ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - END - 4");
 			return -1;
 		}
 
@@ -199,6 +211,7 @@ static int registrar_validate_contacts(const pjsip_rx_data *rdata, pj_pool_t *po
 		}
 	}
 
+	ast_log(LOG_DEBUG, "TMA - registrar_validate_contacts - END");
 	return 0;
 }
 
@@ -216,6 +229,7 @@ static int registrar_contact_delete(enum contact_delete_type type, pjsip_transpo
 /*! \brief Internal function used to delete a contact from an AOR */
 static int registrar_delete_contact(void *obj, void *arg, int flags)
 {
+	ast_log(LOG_DEBUG, "TMA - registrar_delete_contact - START/END");
 	return registrar_contact_delete(
 		CONTACT_DELETE_REQUEST, NULL, obj, arg) ? 0 : CMP_MATCH;
 }
@@ -227,11 +241,12 @@ static int registrar_add_contact(void *obj, void *arg, int flags)
 	pjsip_tx_data *tdata = arg;
 	pj_str_t uri;
 	pjsip_uri *parsed;
+	ast_log(LOG_DEBUG, "TMA - registrar_add_contact - START");
 
 	pj_strdup2_with_null(tdata->pool, &uri, contact->uri);
 	parsed = pjsip_parse_uri(tdata->pool, uri.ptr, uri.slen, PJSIP_PARSE_URI_AS_NAMEADDR);
 
-    ast_log(LOG_DEBUG, "TMA - 170");
+	ast_log(LOG_DEBUG, "TMA - registrar_add_contact - check uri scheme");
 	if (parsed && (PJSIP_URI_SCHEME_IS_SIP(parsed) || PJSIP_URI_SCHEME_IS_SIPS(parsed))) {
 		pjsip_contact_hdr *hdr = pjsip_contact_hdr_create(tdata->pool);
 		hdr->uri = parsed;
@@ -246,6 +261,7 @@ static int registrar_add_contact(void *obj, void *arg, int flags)
 			(int) uri.slen, uri.ptr, contact->aor);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - registrar_add_contact - END");
 	return 0;
 }
 
@@ -255,11 +271,13 @@ static void registrar_add_date_header(pjsip_tx_data *tdata)
 	char date[256];
 	struct tm tm;
 	time_t t = time(NULL);
+	ast_log(LOG_DEBUG, "TMA - registrar_add_date_header - START");
 
 	gmtime_r(&t, &tm);
 	strftime(date, sizeof(date), "%a, %d %b %Y %T GMT", &tm);
 
 	ast_sip_add_header(tdata, "Date", date);
+	ast_log(LOG_DEBUG, "TMA - registrar_add_date_header - END");
 }
 
 static const pj_str_t path_hdr_name = { "Path", 4 };
@@ -267,13 +285,16 @@ static const pj_str_t path_hdr_name = { "Path", 4 };
 static int build_path_data(pjsip_rx_data *rdata, struct ast_str **path_str)
 {
 	pjsip_generic_string_hdr *path_hdr = pjsip_msg_find_hdr_by_name(rdata->msg_info.msg, &path_hdr_name, NULL);
+	ast_log(LOG_DEBUG, "TMA - build_path_data - START");
 
 	if (!path_hdr) {
+		ast_log(LOG_DEBUG, "TMA - build_path_data - END - 1");
 		return 0;
 	}
 
 	*path_str = ast_str_create(64);
 	if (!*path_str) {
+		ast_log(LOG_DEBUG, "TMA - build_path_data - END - 2");
 		return -1;
 	}
 
@@ -283,6 +304,7 @@ static int build_path_data(pjsip_rx_data *rdata, struct ast_str **path_str)
 		ast_str_append(path_str, 0, ",%.*s", (int)path_hdr->hvalue.slen, path_hdr->hvalue.ptr);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - build_path_data - END");
 	return 0;
 }
 
@@ -291,32 +313,39 @@ static int registrar_validate_path(pjsip_rx_data *rdata, struct ast_sip_aor *aor
 	const pj_str_t path_supported_name = { "path", 4 };
 	pjsip_supported_hdr *supported_hdr;
 	int i;
+	ast_log(LOG_DEBUG, "TMA - registrar_validate_path - START");
 
 	if (!aor->support_path) {
+		ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END - 1");
 		return 0;
 	}
 
 	if (build_path_data(rdata, path_str)) {
+		ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END - 2");
 		return -1;
 	}
 
 	if (!*path_str) {
+		ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END - 3");
 		return 0;
 	}
 
 	supported_hdr = pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_SUPPORTED, NULL);
 	if (!supported_hdr) {
+		ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END - 4");
 		return -1;
 	}
 
 	/* Find advertised path support */
 	for (i = 0; i < supported_hdr->count; i++) {
 		if (!pj_stricmp(&supported_hdr->values[i], &path_supported_name)) {
+			ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END - 5");
 			return 0;
 		}
 	}
 
 	/* Path header present, but support not advertised */
+	ast_log(LOG_DEBUG, "TMA - registrar_validate_path - END");
 	return -1;
 }
 
@@ -337,7 +366,9 @@ static int contact_transport_monitor_matcher(void *a, void *b)
 {
 	struct contact_transport_monitor *ma = a;
 	struct contact_transport_monitor *mb = b;
+	ast_log(LOG_DEBUG, "TMA - contact_transport_monitor_matcher - START");
 
+	ast_log(LOG_DEBUG, "TMA - contact_transport_monitor_matcher - END");
 	return strcmp(ma->aor_name, mb->aor_name) == 0
 		&& strcmp(ma->contact_name, mb->contact_name) == 0;
 }
@@ -347,6 +378,7 @@ static int register_contact_transport_remove_cb(void *data)
 	struct contact_transport_monitor *monitor = data;
 	struct ast_sip_contact *contact;
 	struct ast_sip_aor *aor;
+	ast_log(LOG_DEBUG, "TMA - register_contact_transport_remove_cb - START");
 
 	aor = ast_sip_location_retrieve_aor(monitor->aor_name);
 	if (!aor) {
@@ -354,6 +386,7 @@ static int register_contact_transport_remove_cb(void *data)
 		monitor->removing = 0;
 		ao2_unlock(monitor);
 		ao2_ref(monitor, -1);
+		ast_log(LOG_DEBUG, "TMA - register_contact_transport_remove_cb - END - 1");
 		return 0;
 	}
 
@@ -368,6 +401,7 @@ static int register_contact_transport_remove_cb(void *data)
 	ao2_ref(aor, -1);
 
 	ao2_ref(monitor, -1);
+	ast_log(LOG_DEBUG, "TMA - register_contact_transport_remove_cb - END");
 	return 0;
 }
 
@@ -384,6 +418,7 @@ static int register_contact_transport_remove_cb(void *data)
 static void register_contact_transport_shutdown_cb(void *data)
 {
 	struct contact_transport_monitor *monitor = data;
+	ast_log(LOG_DEBUG, "TMA - register_contact_transport_shutdown_cb - START");
 
 	/*
 	 * It's possible for this shutdown handler to get called multiple times for the
@@ -394,6 +429,7 @@ static void register_contact_transport_shutdown_cb(void *data)
 	ao2_lock(monitor);
 	if (monitor->removing) {
 		ao2_unlock(monitor);
+		ast_log(LOG_DEBUG, "TMA - register_contact_transport_shutdown_cb - END - 1");
 		return;
 	}
 
@@ -412,6 +448,7 @@ static void register_contact_transport_shutdown_cb(void *data)
 	}
 
 	ao2_unlock(monitor);
+	ast_log(LOG_DEBUG, "TMA - register_contact_transport_shutdown_cb - END");
 }
 
 
@@ -419,9 +456,11 @@ static int registrar_contact_delete(enum contact_delete_type type, pjsip_transpo
 	struct ast_sip_contact *contact, const char *aor_name)
 {
 	int aor_size;
+	ast_log(LOG_DEBUG, "TMA - registrar_contact_delete - START");
 
 	/* Permanent contacts can't be deleted */
 	if (ast_tvzero(contact->expiration_time)) {
+		ast_log(LOG_DEBUG, "TMA - registrar_contact_delete - END - 1");
 		return -1;
 	}
 
@@ -487,6 +526,7 @@ static int registrar_contact_delete(enum contact_delete_type type, pjsip_transpo
 				contact->user_agent);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - registrar_contact_delete - END");
 	return 0;
 }
 
@@ -496,8 +536,10 @@ static int vec_contact_cmp(struct ast_sip_contact *left, struct ast_sip_contact 
 {
 	struct ast_sip_contact *left_contact = left;
 	struct ast_sip_contact *right_contact = right;
+	ast_log(LOG_DEBUG, "TMA - vec_contact_cmp - START");
 
 	/* Sort from soonest to expire to last to expire */
+	ast_log(LOG_DEBUG, "TMA - vec_contact_cmp - END");
 	return ast_tvcmp(left_contact->expiration_time, right_contact->expiration_time);
 }
 
@@ -505,6 +547,7 @@ static int vec_contact_add(void *obj, void *arg, int flags)
 {
 	struct ast_sip_contact *contact = obj;
 	struct excess_contact_vector *contact_vec = arg;
+	ast_log(LOG_DEBUG, "TMA - vec_contact_add - START");
 
 	/*
 	 * Performance wise, an insertion sort is fine because we
@@ -522,6 +565,7 @@ static int vec_contact_add(void *obj, void *arg, int flags)
 		 */
 		--AST_VECTOR_SIZE(contact_vec);
 	}
+	ast_log(LOG_DEBUG, "TMA - vec_contact_add - END");
 	return 0;
 }
 
@@ -539,6 +583,7 @@ static void remove_excess_contacts(struct ao2_container *contacts, struct ao2_co
 	unsigned int to_remove)
 {
 	struct excess_contact_vector contact_vec;
+	ast_log(LOG_DEBUG, "TMA - remove_excess_contacts - START");
 
 	/*
 	 * Create a sorted vector to hold the to_remove soonest to
@@ -547,6 +592,7 @@ static void remove_excess_contacts(struct ao2_container *contacts, struct ao2_co
 	 * won't remove.
 	 */
 	if (AST_VECTOR_INIT(&contact_vec, to_remove + 1)) {
+		ast_log(LOG_DEBUG, "TMA - remove_excess_contacts - END - 1");
 		return;
 	}
 	ao2_callback(contacts, OBJ_NODATA | OBJ_MULTIPLE, vec_contact_add, &contact_vec);
@@ -572,6 +618,7 @@ static void remove_excess_contacts(struct ao2_container *contacts, struct ao2_co
 	}
 
 	AST_VECTOR_FREE(&contact_vec);
+	ast_log(LOG_DEBUG, "TMA - remove_excess_contacts - END");
 }
 
 /*! \brief Callback function which adds non-permanent contacts to a container */
@@ -579,13 +626,16 @@ static int registrar_add_non_permanent(void *obj, void *arg, int flags)
 {
 	struct ast_sip_contact *contact = obj;
 	struct ao2_container *container = arg;
+	ast_log(LOG_DEBUG, "TMA - registrar_add_non_permanent - START");
 
 	if (ast_tvzero(contact->expiration_time)) {
+		ast_log(LOG_DEBUG, "TMA - registrar_add_non_permanent - END - 1");
 		return 0;
 	}
 
 	ao2_link(container, contact);
 
+	ast_log(LOG_DEBUG, "TMA - registrar_add_non_permanent - END");
 	return 0;
 }
 
@@ -626,12 +676,14 @@ static void register_aor_core(pjsip_rx_data *rdata,
 	pjsip_cid_hdr *call_id_hdr;
 	char *call_id = NULL;
 	size_t alloc_size;
+	ast_log(LOG_DEBUG, "TMA - register_aor_core - START");
 
 	/* We create a single pool and use it throughout this function where we need one */
 	details.pool = pjsip_endpt_create_pool(ast_sip_get_pjsip_endpoint(),
 		"Contact Comparison", 1024, 256);
 	if (!details.pool) {
 		response->code = 500;
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 1");
 		return;
 	}
 
@@ -649,6 +701,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 				ast_sorcery_object_get_id(endpoint));
 		response->code = 400;
 		pjsip_endpt_release_pool(ast_sip_get_pjsip_endpoint(), details.pool);
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 2");
 		return;
 	}
 
@@ -658,6 +711,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 				ast_sorcery_object_get_id(endpoint));
 		response->code = 420;
 		pjsip_endpt_release_pool(ast_sip_get_pjsip_endpoint(), details.pool);
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 3");
 		return;
 	}
 
@@ -673,6 +727,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 		if (!existing_contacts) {
 			response->code = 500;
 			pjsip_endpt_release_pool(ast_sip_get_pjsip_endpoint(), details.pool);
+			ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 4");
 			return;
 		}
 
@@ -690,6 +745,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 		response->code = 403;
 		pjsip_endpt_release_pool(ast_sip_get_pjsip_endpoint(), details.pool);
 		ao2_cleanup(existing_contacts);
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 5");
 		return;
 	}
 
@@ -741,7 +797,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 			break;
 		}
 
-        ast_log(LOG_DEBUG, "TMA - 170");
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - check uri scheme");
 		if (!PJSIP_URI_SCHEME_IS_SIP(contact_hdr->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact_hdr->uri)) {
 			/* This registrar only currently supports sip: and sips: URI schemes */
 			continue;
@@ -896,6 +952,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 		ao2_cleanup(response_contact);
 		ao2_cleanup(contacts);
 		response->code = 500;
+		ast_log(LOG_DEBUG, "TMA - register_aor_core - END - 6");
 		return;
 	}
 	ao2_cleanup(response_contact);
@@ -911,6 +968,7 @@ static void register_aor_core(pjsip_rx_data *rdata,
 	}
 
 	response->tdata = tdata;
+	ast_log(LOG_DEBUG, "TMA - register_aor_core - END");
 }
 
 static int register_aor(pjsip_rx_data *rdata,
@@ -922,6 +980,7 @@ static int register_aor(pjsip_rx_data *rdata,
 		.code = 500,
 	};
 	struct ao2_container *contacts = NULL;
+	ast_log(LOG_DEBUG, "TMA - register_aor - START");
 
 	ao2_lock(aor);
 	contacts = ast_sip_location_retrieve_aor_contacts_nolock(aor);
@@ -929,6 +988,7 @@ static int register_aor(pjsip_rx_data *rdata,
 		ao2_unlock(aor);
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(),
 			rdata, response.code, NULL, NULL, NULL);
+		ast_log(LOG_DEBUG, "TMA - register_aor - END - 1");
 		return PJ_TRUE;
 	}
 
@@ -943,20 +1003,25 @@ static int register_aor(pjsip_rx_data *rdata,
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(),
 			rdata, response.code, NULL, NULL, NULL);
 	}
+	ast_log(LOG_DEBUG, "TMA - register_aor - END");
 	return PJ_TRUE;
 }
 
 static int match_aor(const char *aor_name, const char *id)
 {
+	ast_log(LOG_DEBUG, "TMA - match_aor - START");
 	if (ast_strlen_zero(aor_name)) {
+		ast_log(LOG_DEBUG, "TMA - match_aor - END - 1");
 		return 0;
 	}
 
 	if (!strcmp(aor_name, id)) {
 		ast_debug(3, "Matched id '%s' to aor '%s'\n", id, aor_name);
+		ast_log(LOG_DEBUG, "TMA - match_aor - END - 2");
 		return 1;
 	}
 
+	ast_log(LOG_DEBUG, "TMA - match_aor - END");
 	return 0;
 }
 
@@ -968,6 +1033,7 @@ static char *find_aor_name(const pj_str_t *pj_username, const pj_str_t *pj_domai
 	char *id_domain;
 	char *username, *domain;
 	struct ast_sip_domain_alias *alias;
+	ast_log(LOG_DEBUG, "TMA - find_aor_name - START");
 
 	/* Turn these into C style strings for convenience */
 	username = ast_alloca(pj_strlen(pj_username) + 1);
@@ -984,6 +1050,7 @@ static char *find_aor_name(const pj_str_t *pj_username, const pj_str_t *pj_domai
 	configured_aors = aors_buf;
 	while ((aor_name = ast_strip(strsep(&configured_aors, ",")))) {
 		if (match_aor(aor_name, id_domain)) {
+			ast_log(LOG_DEBUG, "TMA - find_aor_name - END - 1");
 			return ast_strdup(aor_name);
 		}
 	}
@@ -999,6 +1066,7 @@ static char *find_aor_name(const pj_str_t *pj_username, const pj_str_t *pj_domai
 		configured_aors = strcpy(aors_buf, aors);/* Safe */
 		while ((aor_name = ast_strip(strsep(&configured_aors, ",")))) {
 			if (match_aor(aor_name, id_domain_alias)) {
+				ast_log(LOG_DEBUG, "TMA - find_aor_name - END - 2");
 				return ast_strdup(aor_name);
 			}
 		}
@@ -1006,6 +1074,7 @@ static char *find_aor_name(const pj_str_t *pj_username, const pj_str_t *pj_domai
 
 	if (ast_strlen_zero(username)) {
 		/* No username, no match */
+		ast_log(LOG_DEBUG, "TMA - find_aor_name - END - 3");
 		return NULL;
 	}
 
@@ -1013,10 +1082,12 @@ static char *find_aor_name(const pj_str_t *pj_username, const pj_str_t *pj_domai
 	configured_aors = strcpy(aors_buf, aors);/* Safe */
 	while ((aor_name = ast_strip(strsep(&configured_aors, ",")))) {
 		if (match_aor(aor_name, username)) {
+			ast_log(LOG_DEBUG, "TMA - find_aor_name - END - 4");
 			return ast_strdup(aor_name);
 		}
 	}
 
+	ast_log(LOG_DEBUG, "TMA - find_aor_name - END");
 	return NULL;
 }
 
@@ -1025,6 +1096,7 @@ static struct ast_sip_aor *find_registrar_aor(struct pjsip_rx_data *rdata, struc
 	struct ast_sip_aor *aor = NULL;
 	char *aor_name = NULL;
 	int i;
+	ast_log(LOG_DEBUG, "TMA - find_registrar_aor - START");
 
 	for (i = 0; i < AST_VECTOR_SIZE(&endpoint->ident_method_order); ++i) {
 		pj_str_t username;
@@ -1086,6 +1158,7 @@ static struct ast_sip_aor *find_registrar_aor(struct pjsip_rx_data *rdata, struc
 			rdata->pkt_info.src_name, rdata->pkt_info.src_port);
 	}
 	ast_free(aor_name);
+	ast_log(LOG_DEBUG, "TMA - find_registrar_aor - END");
 	return aor;
 }
 
@@ -1095,9 +1168,10 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
 		 ast_pjsip_rdata_get_endpoint(rdata), ao2_cleanup);
 	struct ast_sip_aor *aor;
 	const char *aor_name;
-    ast_debug(2, "TMA - registrar_on_rx_request - START");
+	ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - START");
 
 	if (pjsip_method_cmp(&rdata->msg_info.msg->line.req.method, &pjsip_register_method) || !endpoint) {
+		ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - END - 1");
 		return PJ_FALSE;
 	}
 
@@ -1107,21 +1181,24 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
 		ast_sip_report_failed_acl(endpoint, rdata, "registrar_attempt_without_configured_aors");
 		ast_log(LOG_WARNING, "Endpoint '%s' (%s:%d) has no configured AORs\n", ast_sorcery_object_get_id(endpoint),
 			rdata->pkt_info.src_name, rdata->pkt_info.src_port);
+		ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - END - 2");
 		return PJ_TRUE;
 	}
 
-    ast_log(LOG_DEBUG, "TMA - 170");
+	ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - check uri scheme");
 	if (!PJSIP_URI_SCHEME_IS_SIP(rdata->msg_info.to->uri) && !PJSIP_URI_SCHEME_IS_SIPS(rdata->msg_info.to->uri)) {
 		pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 416, NULL, NULL, NULL);
 		ast_sip_report_failed_acl(endpoint, rdata, "registrar_invalid_uri_in_to_received");
 		ast_log(LOG_WARNING, "Endpoint '%s' (%s:%d) attempted to register to an AOR with a non-SIP URI\n", ast_sorcery_object_get_id(endpoint),
 			rdata->pkt_info.src_name, rdata->pkt_info.src_port);
+		ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - END - 3");
 		return PJ_TRUE;
 	}
 
 	aor = find_registrar_aor(rdata, endpoint);
 	if (!aor) {
 		/* We've already responded about not finding an AOR. */
+		ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - END - 4");
 		return PJ_TRUE;
 	}
 
@@ -1138,6 +1215,7 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
 		register_aor(rdata, endpoint, aor, aor_name);
 	}
 	ao2_ref(aor, -1);
+	ast_log(LOG_DEBUG, "TMA - registrar_on_rx_request - END");
 	return PJ_TRUE;
 }
 
@@ -1145,6 +1223,7 @@ static pj_bool_t registrar_on_rx_request(struct pjsip_rx_data *rdata)
    in order to avoid problems with an undefined symbol */
 static int sip_contact_to_str(void *acp, void *arg, int flags)
 {
+	ast_log(LOG_DEBUG, "TMA - sip_contact_to_str - START/END");
 	return ast_sip_contact_to_str(acp, arg, flags);
 }
 
@@ -1155,8 +1234,10 @@ static int ami_registrations_aor(void *obj, void *arg, int flags)
 	int *count = ami->arg;
 	RAII_VAR(struct ast_str *, buf,
 		 ast_sip_create_ami_event("InboundRegistrationDetail", ami), ast_free);
+	ast_log(LOG_DEBUG, "TMA - ami_registrations_aor - START");
 
 	if (!buf) {
+		ast_log(LOG_DEBUG, "TMA - ami_registrations_aor - END - 1");
 		return -1;
 	}
 
@@ -1167,12 +1248,14 @@ static int ami_registrations_aor(void *obj, void *arg, int flags)
 
 	astman_append(ami->s, "%s\r\n", ast_str_buffer(buf));
 	(*count)++;
+	ast_log(LOG_DEBUG, "TMA - ami_registrations_aor - END");
 	return 0;
 }
 
 static int ami_registrations_endpoint(void *obj, void *arg, int flags)
 {
 	struct ast_sip_endpoint *endpoint = obj;
+	ast_log(LOG_DEBUG, "TMA - ami_registrations_endpoint - START/END");
 	return ast_sip_for_each_aor(
 		endpoint->aors, ami_registrations_aor, arg);
 }
@@ -1181,12 +1264,15 @@ static int ami_registrations_endpoints(void *arg)
 {
 	RAII_VAR(struct ao2_container *, endpoints,
 		 ast_sip_get_endpoints(), ao2_cleanup);
+	ast_log(LOG_DEBUG, "TMA - ami_registrations_endpoints - START");
 
 	if (!endpoints) {
+		ast_log(LOG_DEBUG, "TMA - ami_registrations_endpoints - END - 1");
 		return 0;
 	}
 
 	ao2_callback(endpoints, OBJ_NODATA, ami_registrations_endpoint, arg);
+	ast_log(LOG_DEBUG, "TMA - ami_registrations_endpoints - END");
 	return 0;
 }
 
@@ -1194,6 +1280,7 @@ static int ami_show_registrations(struct mansession *s, const struct message *m)
 {
 	int count = 0;
 	struct ast_sip_ami ami = { .s = s, .m = m, .arg = &count, .action_id = astman_get_header(m, "ActionID"), };
+	ast_log(LOG_DEBUG, "TMA - ami_show_registrations - START");
 
 	astman_send_listack(s, m, "Following are Events for each Inbound registration",
 		"start");
@@ -1202,6 +1289,7 @@ static int ami_show_registrations(struct mansession *s, const struct message *m)
 
 	astman_send_list_complete_start(s, m, "InboundRegistrationDetailComplete", count);
 	astman_send_list_complete_end(s);
+	ast_log(LOG_DEBUG, "TMA - ami_show_registrations - END");
 	return 0;
 }
 
@@ -1213,6 +1301,7 @@ static int ami_show_registration_contact_statuses(struct mansession *s, const st
 		ast_sip_get_sorcery(), "contact", AST_RETRIEVE_FLAG_MULTIPLE | AST_RETRIEVE_FLAG_ALL, NULL);
 	struct ao2_iterator i;
 	struct ast_sip_contact *contact;
+	ast_log(LOG_DEBUG, "TMA - ami_show_registration_contact_statuses - START");
 
 	astman_send_listack(s, m, "Following are ContactStatusEvents for each Inbound "
 			    "registration", "start");
@@ -1237,6 +1326,7 @@ static int ami_show_registration_contact_statuses(struct mansession *s, const st
 
 	astman_send_list_complete_start(s, m, "ContactStatusDetailComplete", count);
 	astman_send_list_complete_end(s);
+	ast_log(LOG_DEBUG, "TMA - ami_show_registration_contact_statuses - END");
 	return 0;
 }
 
@@ -1261,9 +1351,11 @@ static int expire_contact(void *obj, void *arg, int flags)
 {
 	struct ast_sip_contact *contact = obj;
 	struct ast_named_lock *lock;
+	ast_log(LOG_DEBUG, "TMA - expire_contact - START");
 
 	lock = ast_named_lock_get(AST_NAMED_LOCK_TYPE_MUTEX, "aor", contact->aor);
 	if (!lock) {
+		ast_log(LOG_DEBUG, "TMA - expire_contact - END - 1");
 		return 0;
 	}
 
@@ -1278,6 +1370,7 @@ static int expire_contact(void *obj, void *arg, int flags)
 	ao2_unlock(lock);
 	ast_named_lock_put(lock);
 
+	ast_log(LOG_DEBUG, "TMA - expire_contact - END");
 	return 0;
 }
 
@@ -1286,6 +1379,7 @@ static void *check_expiration_thread(void *data)
 	struct ao2_container *contacts;
 	struct ast_variable *var;
 	char *time = alloca(64);
+	ast_log(LOG_DEBUG, "TMA - check_expiration_thread - START");
 
 	while (check_interval) {
 		sleep(check_interval);
@@ -1306,11 +1400,13 @@ static void *check_expiration_thread(void *data)
 		}
 	}
 
+	ast_log(LOG_DEBUG, "TMA - check_expiration_thread - END");
 	return NULL;
 }
 
 static void expiration_global_loaded(const char *object_type)
 {
+	ast_log(LOG_DEBUG, "TMA - expiration_global_loaded - START");
 	check_interval = ast_sip_get_contact_expiration_check_interval();
 
 	/* Observer calls are serialized so this is safe without it's own lock */
@@ -1318,6 +1414,7 @@ static void expiration_global_loaded(const char *object_type)
 		if (check_thread == AST_PTHREADT_NULL) {
 			if (ast_pthread_create_background(&check_thread, NULL, check_expiration_thread, NULL)) {
 				ast_log(LOG_ERROR, "Could not create thread for checking contact expiration.\n");
+				ast_log(LOG_DEBUG, "TMA - expiration_global_loaded - END - 1");
 				return;
 			}
 			ast_debug(3, "Interval = %d, starting thread\n", check_interval);
@@ -1330,6 +1427,7 @@ static void expiration_global_loaded(const char *object_type)
 			ast_debug(3, "Interval = 0, shutting thread down\n");
 		}
 	}
+	ast_log(LOG_DEBUG, "TMA - expiration_global_loaded - END");
 }
 
 /*! \brief Observer which is used to update our interval when the global setting changes */
@@ -1340,17 +1438,20 @@ static struct ast_sorcery_observer expiration_global_observer = {
 static int load_module(void)
 {
 	const pj_str_t STR_REGISTER = { "REGISTER", 8 };
+	ast_log(LOG_DEBUG, "TMA - load_module - START");
 
 	ast_pjproject_get_buildopt("PJ_MAX_HOSTNAME", "%d", &pj_max_hostname);
 	/* As of pjproject 2.4.5, PJSIP_MAX_URL_SIZE isn't exposed yet but we try anyway. */
 	ast_pjproject_get_buildopt("PJSIP_MAX_URL_SIZE", "%d", &pjsip_max_url_size);
 
 	if (ast_sip_register_service(&registrar_module)) {
+		ast_log(LOG_DEBUG, "TMA - load_module - END - 1");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
 	if (pjsip_endpt_add_capability(ast_sip_get_pjsip_endpoint(), NULL, PJSIP_H_ALLOW, NULL, 1, &STR_REGISTER) != PJ_SUCCESS) {
 		ast_sip_unregister_service(&registrar_module);
+		ast_log(LOG_DEBUG, "TMA - load_module - END - 2");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
@@ -1362,11 +1463,13 @@ static int load_module(void)
 	ast_sorcery_observer_add(ast_sip_get_sorcery(), "global", &expiration_global_observer);
 	ast_sorcery_reload_object(ast_sip_get_sorcery(), "global");
 
+	ast_log(LOG_DEBUG, "TMA - load_module - END");
 	return AST_MODULE_LOAD_SUCCESS;
 }
 
 static int unload_module(void)
 {
+	ast_log(LOG_DEBUG, "TMA - unload_module - START");
 	if (check_thread != AST_PTHREADT_NULL) {
 		check_interval = 0;
 		pthread_kill(check_thread, SIGURG);
@@ -1381,6 +1484,7 @@ static int unload_module(void)
 	ast_manager_unregister(AMI_SHOW_REGISTRATION_CONTACT_STATUSES);
 	ast_sip_unregister_service(&registrar_module);
 	ast_sip_transport_monitor_unregister_all(register_contact_transport_shutdown_cb, NULL, NULL);
+	ast_log(LOG_DEBUG, "TMA - unload_module - END");
 	return 0;
 }
 

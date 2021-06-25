@@ -40,15 +40,24 @@
 #define is_sip_uri(uri) \
 	(PJSIP_URI_SCHEME_IS_SIP(uri) || PJSIP_URI_SCHEME_IS_SIPS(uri))
 
+#define is_tel_uri(uri) \
+	PJSIP_URI_SCHEME_IS_TEL(uri)
+
+#define is_allowed_uri(uri) \
+	is_sip_uri(uri)            \
+//	(is_sip_uri(uri) || is_tel_uri(uri))
+
 static void save_orig_contact_host(pjsip_rx_data *rdata, pjsip_sip_uri *uri)
 {
 	pjsip_param *x_orig_host;
 	pj_str_t p_value;
 #define COLON_LEN 1
 #define MAX_PORT_LEN 5
+    ast_log(LOG_DEBUG, "TMA - save_orig_contact_host - START");
 
 	if (rdata->msg_info.msg->type != PJSIP_REQUEST_MSG ||
 		rdata->msg_info.msg->line.req.method.id != PJSIP_REGISTER_METHOD) {
+        ast_log(LOG_DEBUG, "TMA - save_orig_contact_host - END - 1");
 		return;
 	}
 
@@ -63,11 +72,13 @@ static void save_orig_contact_host(pjsip_rx_data *rdata, pjsip_sip_uri *uri)
 	pj_strassign(&x_orig_host->value, &p_value);
 	pj_list_insert_before(&uri->other_param, x_orig_host);
 
+    ast_log(LOG_DEBUG, "TMA - save_orig_contact_host - END");
 	return;
 }
 
 static void rewrite_uri(pjsip_rx_data *rdata, pjsip_sip_uri *uri, pj_pool_t *pool)
 {
+    ast_log(LOG_DEBUG, "TMA - rewrite_uri - START");
 
 	if (pj_strcmp2(&uri->host, rdata->pkt_info.src_name) != 0) {
 		save_orig_contact_host(rdata, uri);
@@ -82,6 +93,7 @@ static void rewrite_uri(pjsip_rx_data *rdata, pjsip_sip_uri *uri, pj_pool_t *poo
 	} else {
 		uri->transport_param.slen = 0;
 	}
+    ast_log(LOG_DEBUG, "TMA - rewrite_uri - END");
 }
 
 /*
@@ -120,6 +132,7 @@ static int rewrite_route_set(pjsip_rx_data *rdata, pjsip_dialog *dlg)
 	int res = -1;
 	int ignore_rr = 0;
 	int pubsub = 0;
+    ast_log(LOG_DEBUG, "TMA - rewrite_route_set - START");
 
 	if (rdata->msg_info.msg->type == PJSIP_RESPONSE_MSG) {
 		pjsip_hdr *iter;
@@ -173,15 +186,17 @@ static int rewrite_route_set(pjsip_rx_data *rdata, pjsip_dialog *dlg)
 		res = 0;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - rewrite_route_set - END");
 	return res;
 }
 
 static int rewrite_contact(pjsip_rx_data *rdata, pjsip_dialog *dlg)
 {
 	pjsip_contact_hdr *contact;
+    ast_log(LOG_DEBUG, "TMA - rewrite_contact - START");
 
 	contact = pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CONTACT, NULL);
-    ast_log(LOG_DEBUG, "TMA - 184");
+    ast_log(LOG_DEBUG, "TMA - rewrite_contact - check uri scheme");
 	if (contact && !contact->star && (PJSIP_URI_SCHEME_IS_SIP(contact->uri) || PJSIP_URI_SCHEME_IS_SIPS(contact->uri))) {
 		pjsip_sip_uri *uri = pjsip_uri_get_uri(contact->uri);
 
@@ -192,17 +207,21 @@ static int rewrite_contact(pjsip_rx_data *rdata, pjsip_dialog *dlg)
 			dlg->remote.contact = (pjsip_contact_hdr*)pjsip_hdr_clone(dlg->pool, contact);
 			dlg->target = dlg->remote.contact->uri;
 		}
+        ast_log(LOG_DEBUG, "TMA - rewrite_contact - END - 1");
 		return 0;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - rewrite_contact - END");
 	return -1;
 }
 
 static pj_bool_t handle_rx_message(struct ast_sip_endpoint *endpoint, pjsip_rx_data *rdata)
 {
 	pjsip_dialog *dlg = pjsip_rdata_get_dlg(rdata);
+    ast_log(LOG_DEBUG, "TMA - handle_rx_message - START");
 
 	if (!endpoint) {
+        ast_log(LOG_DEBUG, "TMA - handle_rx_message - END - 1");
 		return PJ_FALSE;
 	}
 
@@ -223,6 +242,7 @@ static pj_bool_t handle_rx_message(struct ast_sip_endpoint *endpoint, pjsip_rx_d
 		rdata->msg_info.via->rport_param = rdata->pkt_info.src_port;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - handle_rx_message - END");
 	return PJ_FALSE;
 }
 
@@ -235,6 +255,7 @@ static pj_bool_t nat_on_rx_message(pjsip_rx_data *rdata)
 	endpoint = ast_pjsip_rdata_get_endpoint(rdata);
 	res = handle_rx_message(endpoint, rdata);
 	ao2_cleanup(endpoint);
+    ast_log(LOG_DEBUG, "TMA - nat_on_rx_message - END");
 	return res;
 }
 
@@ -257,6 +278,7 @@ static int find_transport_state_in_use(void *obj, void *arg, int flags)
 {
 	struct ast_sip_transport_state *transport_state = obj;
 	struct request_transport_details *details = arg;
+    ast_log(LOG_DEBUG, "TMA - find_transport_state_in_use - START");
 
 	/* If an explicit transport or factory matches then this is what is in use, if we are unavailable
 	 * to compare based on that we make sure that the type is the same and the source IP address/port are the same
@@ -266,9 +288,11 @@ static int find_transport_state_in_use(void *obj, void *arg, int flags)
 		((details->type == transport_state->type) && (transport_state->factory) &&
 			!pj_strcmp(&transport_state->factory->addr_name.host, &details->local_address) &&
 			transport_state->factory->addr_name.port == details->local_port))) {
+        ast_log(LOG_DEBUG, "TMA - find_transport_state_in_use - END - 1");
 		return CMP_MATCH;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - find_transport_state_in_use - END");
 	return 0;
 }
 
@@ -276,12 +300,15 @@ static int find_transport_state_in_use(void *obj, void *arg, int flags)
 static pjsip_sip_uri *nat_get_contact_sip_uri(pjsip_tx_data *tdata)
 {
 	pjsip_contact_hdr *contact = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CONTACT, NULL);
+    ast_log(LOG_DEBUG, "TMA - nat_get_contact_sip_uri - START");
 
-    ast_log(LOG_DEBUG, "TMA - 278");
+    ast_log(LOG_DEBUG, "TMA - nat_get_contact_sip_uri - check uri scheme");
 	if (!contact || (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri))) {
+        ast_log(LOG_DEBUG, "TMA - nat_get_contact_sip_uri - END - 1");
 		return NULL;
 	}
 
+    ast_log(LOG_DEBUG, "TMA - nat_get_contact_sip_uri - END");
 	return pjsip_uri_get_uri(contact->uri);
 }
 
@@ -298,11 +325,13 @@ static int nat_invoke_hook(void *obj, void *arg, int flags)
 {
 	struct ast_sip_nat_hook *hook = obj;
 	struct nat_hook_details *details = arg;
+    ast_log(LOG_DEBUG, "TMA - nat_invoke_hook - START");
 
 	if (hook->outgoing_external_message) {
 		hook->outgoing_external_message(details->tdata, details->transport);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - nat_invoke_hook - END");
 	return 0;
 }
 
@@ -313,9 +342,10 @@ static void restore_orig_contact_host(pjsip_tx_data *tdata)
 	pjsip_param *x_orig_host;
 	pjsip_sip_uri *uri;
 	pjsip_hdr *hdr;
+    ast_log(LOG_DEBUG, "TMA - restore_orig_contact_host - START");
 
 	if (tdata->msg->type == PJSIP_REQUEST_MSG) {
-		if (is_sip_uri(tdata->msg->line.req.uri)) {
+		if (is_allowed_uri(tdata->msg->line.req.uri)) {
 			uri = pjsip_uri_get_uri(tdata->msg->line.req.uri);
 			while ((x_orig_host = pjsip_param_find(&uri->other_param, &x_name))) {
 				pj_list_erase(x_orig_host);
@@ -323,7 +353,7 @@ static void restore_orig_contact_host(pjsip_tx_data *tdata)
 		}
 		for (hdr = tdata->msg->hdr.next; hdr != &tdata->msg->hdr; hdr = hdr->next) {
 			if (hdr->type == PJSIP_H_TO) {
-				if (is_sip_uri(((pjsip_fromto_hdr *) hdr)->uri)) {
+				if (is_allowed_uri(((pjsip_fromto_hdr *) hdr)->uri)) {
 					uri = pjsip_uri_get_uri(((pjsip_fromto_hdr *) hdr)->uri);
 					while ((x_orig_host = pjsip_param_find(&uri->other_param, &x_name))) {
 						pj_list_erase(x_orig_host);
@@ -334,6 +364,7 @@ static void restore_orig_contact_host(pjsip_tx_data *tdata)
 	}
 
 	if (tdata->msg->type != PJSIP_RESPONSE_MSG) {
+        ast_log(LOG_DEBUG, "TMA - restore_orig_contact_host - END - 1");
 		return;
 	}
 
@@ -363,6 +394,7 @@ static void restore_orig_contact_host(pjsip_tx_data *tdata)
 		}
 		contact = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CONTACT, contact->next);
 	}
+    ast_log(LOG_DEBUG, "TMA - restore_orig_contact_host - END");
 }
 
 static pj_status_t process_nat(pjsip_tx_data *tdata)
@@ -375,6 +407,7 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 	struct ast_sockaddr addr = { { 0, } };
 	pjsip_sip_uri *uri = NULL;
 	RAII_VAR(struct ao2_container *, hooks, NULL, ao2_cleanup);
+    ast_log(LOG_DEBUG, "TMA - process_nat - START");
 
 	/* If a transport selector is in use we know the transport or factory, so explicitly find it */
 	if (tdata->tp_sel.type == PJSIP_TPSELECTOR_TRANSPORT) {
@@ -392,6 +425,7 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 			details.type = AST_TRANSPORT_TLS;
 		} else {
 			/* Unknown transport type, we can't map and thus can't apply NAT changes */
+            ast_log(LOG_DEBUG, "TMA - process_nat - END - 1");
 			return PJ_SUCCESS;
 		}
 
@@ -403,6 +437,7 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 			details.local_address = via->sent_by.host;
 			details.local_port = via->sent_by.port;
 		} else {
+            ast_log(LOG_DEBUG, "TMA - process_nat - END - 2");
 			return PJ_SUCCESS;
 		}
 
@@ -412,14 +447,17 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 	}
 
 	if (!(transport_states = ast_sip_get_transport_states())) {
+        ast_log(LOG_DEBUG, "TMA - process_nat - END - 3");
 		return PJ_SUCCESS;
 	}
 
 	if (!(transport_state = ao2_callback(transport_states, 0, find_transport_state_in_use, &details))) {
+        ast_log(LOG_DEBUG, "TMA - process_nat - END - 4");
 		return PJ_SUCCESS;
 	}
 
 	if (!(transport = ast_sorcery_retrieve_by_id(ast_sip_get_sorcery(), "transport", transport_state->id))) {
+        ast_log(LOG_DEBUG, "TMA - process_nat - END - 5");
 		return PJ_SUCCESS;
 	}
 
@@ -430,6 +468,7 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 		/* See if where we are sending this request is local or not, and if not that we can get a Contact URI to modify */
 		if (ast_sip_transport_is_local(transport_state, &addr)) {
 			ast_debug(5, "Request is being sent to local address, skipping NAT manipulation\n");
+            ast_log(LOG_DEBUG, "TMA - process_nat - END - 6");
 			return PJ_SUCCESS;
 		}
 	}
@@ -474,6 +513,7 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 		ao2_callback(hooks, 0, nat_invoke_hook, &hook_details);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - process_nat - END");
 	return PJ_SUCCESS;
 }
 
@@ -502,25 +542,31 @@ static pjsip_module nat_module = {
 /*! \brief Function called when an INVITE goes out */
 static int nat_incoming_invite_request(struct ast_sip_session *session, struct pjsip_rx_data *rdata)
 {
+    ast_log(LOG_DEBUG, "TMA - nat_incoming_invite_request - START");
 	if (session->inv_session->state == PJSIP_INV_STATE_INCOMING) {
 		pjsip_dlg_add_usage(session->inv_session->dlg, &nat_module, NULL);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - nat_incoming_invite_request - END");
 	return 0;
 }
 
 /*! \brief Function called when an INVITE response comes in */
 static void nat_incoming_invite_response(struct ast_sip_session *session, struct pjsip_rx_data *rdata)
 {
+    ast_log(LOG_DEBUG, "TMA - nat_incoming_invite_response - START");
 	handle_rx_message(session->endpoint, rdata);
+    ast_log(LOG_DEBUG, "TMA - nat_incoming_invite_response - END");
 }
 
 /*! \brief Function called when an INVITE comes in */
 static void nat_outgoing_invite_request(struct ast_sip_session *session, struct pjsip_tx_data *tdata)
 {
+    ast_log(LOG_DEBUG, "TMA - nat_outgoing_invite_request - START");
 	if (session->inv_session->state == PJSIP_INV_STATE_NULL) {
 		pjsip_dlg_add_usage(session->inv_session->dlg, &nat_module, NULL);
 	}
+    ast_log(LOG_DEBUG, "TMA - nat_outgoing_invite_request - END");
 }
 
 /*! \brief Supplement for adding NAT functionality to dialog */
@@ -535,20 +581,25 @@ static struct ast_sip_session_supplement nat_supplement = {
 
 static int unload_module(void)
 {
+    ast_log(LOG_DEBUG, "TMA - unload_module - START");
 	ast_sip_session_unregister_supplement(&nat_supplement);
 	ast_sip_unregister_service(&nat_module);
+    ast_log(LOG_DEBUG, "TMA - unload_module - END");
 	return 0;
 }
 
 static int load_module(void)
 {
+    ast_log(LOG_DEBUG, "TMA - load_module - START");
 	if (ast_sip_register_service(&nat_module)) {
 		ast_log(LOG_ERROR, "Could not register NAT module for incoming and outgoing requests\n");
+        ast_log(LOG_DEBUG, "TMA - load_module - END - 1");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
 	ast_sip_session_register_supplement(&nat_supplement);
 
+    ast_log(LOG_DEBUG, "TMA - load_module - END");
 	return AST_MODULE_LOAD_SUCCESS;
 }
 

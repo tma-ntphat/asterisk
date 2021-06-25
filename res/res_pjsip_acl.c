@@ -121,8 +121,10 @@ static struct stasis_subscription *acl_change_sub;
 static int apply_acl(pjsip_rx_data *rdata, struct ast_acl_list *acl)
 {
 	struct ast_sockaddr addr;
+    ast_log(LOG_DEBUG, "TMA - apply_acl - START");
 
 	if (ast_acl_list_is_empty(acl)) {
+        ast_log(LOG_DEBUG, "TMA - apply_acl - END - 1");
 		return 0;
 	}
 
@@ -132,8 +134,10 @@ static int apply_acl(pjsip_rx_data *rdata, struct ast_acl_list *acl)
 
 	if (ast_apply_acl(acl, &addr, "SIP ACL: ") != AST_SENSE_ALLOW) {
 		ast_log(LOG_WARNING, "Incoming SIP message from %s did not pass ACL test\n", ast_sockaddr_stringify(&addr));
+        ast_log(LOG_DEBUG, "TMA - apply_acl - END - 2");
 		return 1;
 	}
+    ast_log(LOG_DEBUG, "TMA - apply_acl - END");
 	return 0;
 }
 
@@ -141,18 +145,21 @@ static int extract_contact_addr(pjsip_contact_hdr *contact, struct ast_sockaddr 
 {
 	pjsip_sip_uri *sip_uri;
 	char host[256];
+    ast_log(LOG_DEBUG, "TMA - extract_contact_addr - START");
 
 	if (!contact || contact->star) {
 		*addrs = NULL;
 		return 0;
 	}
-    ast_log(LOG_DEBUG, "TMA - 4304");
+    ast_log(LOG_DEBUG, "TMA - extract_contact_addr - check url scheme");
 	if (!PJSIP_URI_SCHEME_IS_SIP(contact->uri) && !PJSIP_URI_SCHEME_IS_SIPS(contact->uri)) {
 		*addrs = NULL;
+        ast_log(LOG_DEBUG, "TMA - extract_contact_addr - END - 1");
 		return 0;
 	}
 	sip_uri = pjsip_uri_get_uri(contact->uri);
 	ast_copy_pj_str(host, &sip_uri->host, sizeof(host));
+    ast_log(LOG_DEBUG, "TMA - extract_contact_addr - END");
 	return ast_sockaddr_resolve(addrs, host, PARSE_PORT_FORBID, AST_AF_UNSPEC);
 }
 
@@ -163,8 +170,10 @@ static int apply_contact_acl(pjsip_rx_data *rdata, struct ast_acl_list *contact_
 	struct ast_sockaddr *contact_addrs;
 	int i;
 	pjsip_contact_hdr *contact = (pjsip_contact_hdr *)&rdata->msg_info.msg->hdr;
+    ast_log(LOG_DEBUG, "TMA - apply_contact_acl - START");
 
 	if (ast_acl_list_is_empty(contact_acl)) {
+        ast_log(LOG_DEBUG, "TMA - apply_contact_acl - END - 1");
 		return 0;
 	}
 
@@ -187,6 +196,7 @@ static int apply_contact_acl(pjsip_rx_data *rdata, struct ast_acl_list *contact_
 		}
 	}
 
+    ast_log(LOG_DEBUG, "TMA - apply_contact_acl - END");
 	return forbidden;
 }
 
@@ -205,11 +215,14 @@ static int check_acls(void *obj, void *arg, int flags)
 {
 	struct ast_sip_acl *sip_acl = obj;
 	pjsip_rx_data *rdata = arg;
+    ast_log(LOG_DEBUG, "TMA - check_acls - START");
 
 	if (apply_acl(rdata, sip_acl->acl) ||
 	    apply_contact_acl(rdata, sip_acl->contact_acl)) {
+        ast_log(LOG_DEBUG, "TMA - check_acls - END - 1");
 		return CMP_MATCH | CMP_STOP;
 	}
+    ast_log(LOG_DEBUG, "TMA - check_acls - END");
 	return 0;
 }
 
@@ -219,10 +232,11 @@ static pj_bool_t acl_on_rx_msg(pjsip_rx_data *rdata)
 			 ast_sip_get_sorcery(), SIP_SORCERY_ACL_TYPE,
 			 AST_RETRIEVE_FLAG_MULTIPLE | AST_RETRIEVE_FLAG_ALL, NULL), ao2_cleanup);
 	RAII_VAR(struct ast_sip_acl *, matched_acl, NULL, ao2_cleanup);
-    ast_debug(2, "TMA - acl_on_rx_msg - START");
+    ast_log(LOG_DEBUG, "TMA - acl_on_rx_msg - START");
 
 	if (!acls) {
 		ast_log(LOG_ERROR, "Unable to retrieve ACL sorcery data\n");
+        ast_log(LOG_DEBUG, "TMA - acl_on_rx_msg - END - 1");
 		return PJ_FALSE;
 	}
 
@@ -230,10 +244,11 @@ static pj_bool_t acl_on_rx_msg(pjsip_rx_data *rdata)
 		if (rdata->msg_info.msg->line.req.method.id != PJSIP_ACK_METHOD) {
 			pjsip_endpt_respond_stateless(ast_sip_get_pjsip_endpoint(), rdata, 403, NULL, NULL, NULL);
 		}
+        ast_log(LOG_DEBUG, "TMA - acl_on_rx_msg - END - 2");
 		return PJ_TRUE;
 	}
 
-    ast_debug(2, "TMA - acl_on_rx_msg - END");
+    ast_log(LOG_DEBUG, "TMA - acl_on_rx_msg - END");
 	return PJ_FALSE;
 }
 
@@ -242,6 +257,7 @@ static int acl_handler(const struct aco_option *opt, struct ast_variable *var, v
 	struct ast_sip_acl *sip_acl = obj;
 	int error = 0;
 	int ignore;
+    ast_log(LOG_DEBUG, "TMA - acl_handler - START");
 
 	if (!strncmp(var->name, "contact_", 8)) {
 		ast_append_acl(var->name + 8, var->value, &sip_acl->contact_acl, &error, &ignore);
@@ -262,6 +278,7 @@ static int acl_handler(const struct aco_option *opt, struct ast_variable *var, v
 		ast_append_acl("deny", "0.0.0.0/0.0.0.0", &sip_acl->acl, NULL, &ignore);
 	}
 
+    ast_log(LOG_DEBUG, "TMA - acl_handler - END");
 	return error;
 }
 
@@ -275,30 +292,38 @@ static pjsip_module acl_module = {
 static void acl_destroy(void *obj)
 {
 	struct ast_sip_acl *sip_acl = obj;
+    ast_log(LOG_DEBUG, "TMA - acl_destroy - START");
 	sip_acl->acl = ast_free_acl_list(sip_acl->acl);
 	sip_acl->contact_acl = ast_free_acl_list(sip_acl->contact_acl);
+    ast_log(LOG_DEBUG, "TMA - acl_destroy - END");
 }
 
 static void *acl_alloc(const char *name)
 {
 	struct ast_sip_acl *sip_acl =
 		ast_sorcery_generic_alloc(sizeof(*sip_acl), acl_destroy);
+    ast_log(LOG_DEBUG, "TMA - acl_alloc - START");
 
+    ast_log(LOG_DEBUG, "TMA - acl_alloc - END");
 	return sip_acl;
 }
 
 static void acl_change_stasis_cb(void *data, struct stasis_subscription *sub,
 	struct stasis_message *message)
 {
+    ast_log(LOG_DEBUG, "TMA - acl_change_stasis_cb - START");
 	if (stasis_message_type(message) != ast_named_acl_change_type()) {
+        ast_log(LOG_DEBUG, "TMA - acl_change_stasis_cb - END - 1");
 		return;
 	}
 
 	ast_sorcery_force_reload_object(ast_sip_get_sorcery(), SIP_SORCERY_ACL_TYPE);
+    ast_log(LOG_DEBUG, "TMA - acl_change_stasis_cb - END");
 }
 
 static int load_module(void)
 {
+    ast_log(LOG_DEBUG, "TMA - load_module - START");
 	ast_sorcery_apply_config(ast_sip_get_sorcery(), SIP_SORCERY_ACL_TYPE);
 	ast_sorcery_apply_default(ast_sip_get_sorcery(), SIP_SORCERY_ACL_TYPE,
 				  "config", "pjsip.conf,criteria=type=acl");
@@ -308,6 +333,7 @@ static int load_module(void)
 
 		ast_log(LOG_ERROR, "Failed to register SIP %s object with sorcery\n",
 			SIP_SORCERY_ACL_TYPE);
+        ast_log(LOG_DEBUG, "TMA - load_module - END - 1");
 		return AST_MODULE_LOAD_DECLINE;
 	}
 
@@ -327,13 +353,16 @@ static int load_module(void)
 
 	ast_sip_register_service(&acl_module);
 
+    ast_log(LOG_DEBUG, "TMA - load_module - END");
 	return AST_MODULE_LOAD_SUCCESS;
 }
 
 static int unload_module(void)
 {
+    ast_log(LOG_DEBUG, "TMA - unload_module - START");
 	acl_change_sub = stasis_unsubscribe_and_join(acl_change_sub);
 	ast_sip_unregister_service(&acl_module);
+    ast_log(LOG_DEBUG, "TMA - unload_module - END");
 	return 0;
 }
 

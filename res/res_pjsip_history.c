@@ -166,6 +166,7 @@ static int log_level = -1;
  */
 static int evaluate_equal(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_equal - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
@@ -176,8 +177,10 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
 
 		if (sscanf(op_right->field, "%30d", &right) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not an integer\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 1");
 			return -1;
 		}
+		ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 2");
 		return (*(int *)op_left) == right;
 	}
 	case OPT_DOUBLE_T:
@@ -186,13 +189,16 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
 
 		if (sscanf(op_right->field, "%lf", &right) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not a double\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 3");
 			return -1;
 		}
+		ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 4");
 		return (*(double *)op_left) == right;
 	}
 	case OPT_CHAR_ARRAY_T:
 	case OPT_STRINGFIELD_T:
 		/* In our case, we operate on pj_str_t */
+		ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 5");
 		return pj_strcmp2(op_left, op_right->field) == 0;
 	case OPT_NOOP_T:
 	/* Used for timeval */
@@ -201,9 +207,11 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
 
 		if (sscanf(op_right->field, "%ld", &right.tv_sec) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not a timestamp\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 6");
 			return -1;
 		}
 
+		ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 7");
 		return ast_tvcmp(*(struct timeval *)op_left, right) == 0;
 	}
 	case OPT_SOCKADDR_T:
@@ -215,9 +223,11 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
 		pj_cstr(&str_right, op_right->field);
 		if (pj_sockaddr_parse(pj_AF_UNSPEC(), 0, &str_right, &right) != PJ_SUCCESS) {
 			ast_log(LOG_WARNING, "Unable to convert field '%s': not an IPv4 or IPv6 address\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 8");
 			return -1;
 		}
 
+		ast_log(LOG_DEBUG, "TMA - evaluate_equal - END - 9");
 		return pj_sockaddr_cmp(op_left, &right) == 0;
 	}
 	default:
@@ -225,6 +235,7 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
 			op_right->field, op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_equal - END");
 	return -1;
 }
 
@@ -233,6 +244,7 @@ static int evaluate_equal(struct operator *op, enum aco_option_type type, void *
  */
 static int evaluate_not_equal(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_not_equal - START/END");
 	return !evaluate_equal(op, type, op_left, op_right);
 }
 
@@ -241,6 +253,7 @@ static int evaluate_not_equal(struct operator *op, enum aco_option_type type, vo
  */
 static int evaluate_less_than(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_less_than - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
@@ -251,8 +264,10 @@ static int evaluate_less_than(struct operator *op, enum aco_option_type type, vo
 
 		if (sscanf(op_right->field, "%30d", &right) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not an integer\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_less_than - END - 1");
 			return -1;
 		}
+		ast_log(LOG_DEBUG, "TMA - evaluate_less_than - END - 2");
 		return (*(int *)op_left) < right;
 	}
 	case OPT_DOUBLE_T:
@@ -272,9 +287,11 @@ static int evaluate_less_than(struct operator *op, enum aco_option_type type, vo
 
 		if (sscanf(op_right->field, "%ld", &right.tv_sec) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not a timestamp\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_less_than - END - 3");
 			return -1;
 		}
 
+		ast_log(LOG_DEBUG, "TMA - evaluate_less_than - END - 4");
 		return ast_tvcmp(*(struct timeval *)op_left, right) == -1;
 	}
 	default:
@@ -282,6 +299,7 @@ static int evaluate_less_than(struct operator *op, enum aco_option_type type, vo
 			op_right->field, op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_less_than - END");
 	return -1;
 }
 
@@ -290,6 +308,7 @@ static int evaluate_less_than(struct operator *op, enum aco_option_type type, vo
  */
 static int evaluate_greater_than(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
@@ -300,8 +319,10 @@ static int evaluate_greater_than(struct operator *op, enum aco_option_type type,
 
 		if (sscanf(op_right->field, "%30d", &right) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not an integer\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 1");
 			return -1;
 		}
+		ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 2");
 		return (*(int *)op_left) > right;
 	}
 	case OPT_DOUBLE_T:
@@ -310,8 +331,10 @@ static int evaluate_greater_than(struct operator *op, enum aco_option_type type,
 
 		if (sscanf(op_right->field, "%lf", &right) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not a double\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 3");
 			return -1;
 		}
+		ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 4");
 		return (*(double *)op_left) > right;
 	}
 	case OPT_NOOP_T:
@@ -321,9 +344,11 @@ static int evaluate_greater_than(struct operator *op, enum aco_option_type type,
 
 		if (sscanf(op_right->field, "%ld", &right.tv_sec) != 1) {
 			ast_log(LOG_WARNING, "Unable to extract field '%s': not a timestamp\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 5");
 			return -1;
 		}
 
+		ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END - 6");
 		return ast_tvcmp(*(struct timeval *)op_left, right) == 1;
 	}
 	default:
@@ -331,6 +356,7 @@ static int evaluate_greater_than(struct operator *op, enum aco_option_type type,
 			op_right->field, op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_greater_than - END");
 	return -1;
 }
 
@@ -339,6 +365,7 @@ static int evaluate_greater_than(struct operator *op, enum aco_option_type type,
  */
 static int evaluate_less_than_or_equal(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_less_than_or_equal - START/END");
 	return !evaluate_greater_than(op, type, op_left, op_right);
 }
 
@@ -347,6 +374,7 @@ static int evaluate_less_than_or_equal(struct operator *op, enum aco_option_type
  */
 static int evaluate_greater_than_or_equal(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_greater_than_or_equal - START/END");
 	return !evaluate_less_than(op, type, op_left, op_right);
 }
 
@@ -355,16 +383,19 @@ static int evaluate_greater_than_or_equal(struct operator *op, enum aco_option_t
  */
 static int evaluate_not(struct operator *op, enum aco_option_type type, void *operand)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_not - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
 	case OPT_INT_T:
 	case OPT_UINT_T:
+		ast_log(LOG_DEBUG, "TMA - evaluate_not - END - 1");
 		return !(*(int *)operand);
 	default:
 		ast_log(LOG_WARNING, "Cannot evaluate: invalid operand type for operator '%s'\n", op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_not - END");
 	return -1;
 }
 
@@ -373,16 +404,19 @@ static int evaluate_not(struct operator *op, enum aco_option_type type, void *op
  */
 static int evaluate_and(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_and - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
 	case OPT_INT_T:
 	case OPT_UINT_T:
+		ast_log(LOG_DEBUG, "TMA - evaluate_and - END - 1");
 		return (*(int *)op_left && op_right->result);
 	default:
 		ast_log(LOG_WARNING, "Cannot evaluate: invalid operand type for operator '%s'\n", op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_and - END");
 	return -1;
 }
 
@@ -391,16 +425,19 @@ static int evaluate_and(struct operator *op, enum aco_option_type type, void *op
  */
 static int evaluate_or(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_or - START");
 	switch (type) {
 	case OPT_BOOL_T:
 	case OPT_BOOLFLAG_T:
 	case OPT_INT_T:
 	case OPT_UINT_T:
+		ast_log(LOG_DEBUG, "TMA - evaluate_or - END - 1");
 		return (*(int *)op_left || op_right->result);
 	default:
 		ast_log(LOG_WARNING, "Cannot evaluate: invalid operand type for operator '%s'\n", op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_or - END");
 	return -1;
 }
 
@@ -409,6 +446,7 @@ static int evaluate_or(struct operator *op, enum aco_option_type type, void *op_
  */
 static int evaluate_like(struct operator *op, enum aco_option_type type, void *op_left, struct expression_token *op_right)
 {
+	ast_log(LOG_DEBUG, "TMA - evaluate_like - START");
 	switch (type) {
 	case OPT_CHAR_ARRAY_T:
 	case OPT_STRINGFIELD_T:
@@ -421,18 +459,21 @@ static int evaluate_like(struct operator *op, enum aco_option_type type, void *o
 		ast_copy_pj_str(buf, op_left, pj_strlen(op_left));
 		if (regcomp(&regexbuf, op_right->field, REG_EXTENDED | REG_NOSUB)) {
 			ast_log(LOG_WARNING, "Failed to compile '%s' into a regular expression\n", op_right->field);
+			ast_log(LOG_DEBUG, "TMA - evaluate_like - END - 1");
 			return -1;
 		}
 
 		result = (regexec(&regexbuf, buf, 0, NULL, 0) == 0);
 		regfree(&regexbuf);
 
+		ast_log(LOG_DEBUG, "TMA - evaluate_like - END - 2");
 		return result;
 	}
 	default:
 		ast_log(LOG_WARNING, "Cannot evaluate: invalid operand type for operator '%s'\n", op->symbol);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_like - END");
 	return -1;
 }
 
@@ -470,21 +511,26 @@ static struct operator allowed_operators[] = {
 /*! \brief Callback to retrieve the entry index number */
 static void *entry_get_number(struct pjsip_history_entry *entry)
 {
+	ast_log(LOG_DEBUG, "TMA - entry_get_number - START/END");
 	return &entry->number;
 }
 
 /*! \brief Callback to retrieve the entry's timestamp */
 static void *entry_get_timestamp(struct pjsip_history_entry *entry)
 {
+	ast_log(LOG_DEBUG, "TMA - entry_get_timestamp - START/END");
 	return &entry->timestamp;
 }
 
 /*! \brief Callback to retrieve the entry's destination address */
 static void *entry_get_addr(struct pjsip_history_entry *entry)
 {
+	ast_log(LOG_DEBUG, "TMA - entry_get_addr - START");
 	if (entry->transmitted) {
+		ast_log(LOG_DEBUG, "TMA - entry_get_addr - END - transmitted");
 		return &entry->dst;
 	} else {
+		ast_log(LOG_DEBUG, "TMA - entry_get_addr - END");
 		return &entry->src;
 	}
 }
@@ -492,10 +538,13 @@ static void *entry_get_addr(struct pjsip_history_entry *entry)
 /*! \brief Callback to retrieve the entry's SIP request method type */
 static void *entry_get_sip_msg_request_method(struct pjsip_history_entry *entry)
 {
+	ast_log(LOG_DEBUG, "TMA - entry_get_sip_msg_request_method - START");
 	if (entry->msg->type != PJSIP_REQUEST_MSG) {
+		ast_log(LOG_DEBUG, "TMA - entry_get_sip_msg_request_method - END - 1");
 		return NULL;
 	}
 
+	ast_log(LOG_DEBUG, "TMA - entry_get_sip_msg_request_method - END");
 	return &entry->msg->line.req.method.name;
 }
 
@@ -503,9 +552,11 @@ static void *entry_get_sip_msg_request_method(struct pjsip_history_entry *entry)
 static void *entry_get_sip_msg_call_id(struct pjsip_history_entry *entry)
 {
 	pjsip_cid_hdr *cid_hdr;
+	ast_log(LOG_DEBUG, "TMA - entry_get_sip_msg_call_id - START");
 
 	cid_hdr = PJSIP_MSG_CID_HDR(entry->msg);
 
+	ast_log(LOG_DEBUG, "TMA - entry_get_sip_msg_call_id - END");
 	return &cid_hdr->id;
 }
 
@@ -523,6 +574,7 @@ static struct allowed_field allowed_fields[] = {
 static struct expression_token *expression_token_free(struct expression_token *token)
 {
 	struct expression_token *it_token;
+	ast_log(LOG_DEBUG, "TMA - expression_token_free - START");
 
 	it_token = token;
 	while (it_token) {
@@ -532,6 +584,7 @@ static struct expression_token *expression_token_free(struct expression_token *t
 		ast_free(prev);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - expression_token_free - END");
 	return NULL;
 }
 
@@ -547,6 +600,7 @@ static struct expression_token *expression_token_free(struct expression_token *t
 static struct expression_token *expression_token_alloc(enum expression_token_type token_type, void *value)
 {
 	struct expression_token *token;
+	ast_log(LOG_DEBUG, "TMA - expression_token_alloc - START");
 
 	switch (token_type) {
 	case TOKEN_TYPE_RESULT:
@@ -558,10 +612,12 @@ static struct expression_token *expression_token_alloc(enum expression_token_typ
 		break;
 	default:
 		ast_assert(0);
+		ast_log(LOG_DEBUG, "TMA - expression_token_alloc - END -1");
 		return NULL;
 	}
 
 	if (!token) {
+		ast_log(LOG_DEBUG, "TMA - expression_token_alloc - END - 2");
 		return NULL;
 	}
 	token->token_type = token_type;
@@ -580,6 +636,7 @@ static struct expression_token *expression_token_alloc(enum expression_token_typ
 		ast_assert(0);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - expression_token_alloc - END");
 	return token;
 }
 
@@ -587,6 +644,7 @@ static struct expression_token *expression_token_alloc(enum expression_token_typ
 static struct allowed_field *get_allowed_field(struct expression_token *token)
 {
 	int i;
+	ast_log(LOG_DEBUG, "TMA - get_allowed_field - START");
 
 	ast_assert(token->token_type == TOKEN_TYPE_FIELD);
 
@@ -595,9 +653,11 @@ static struct allowed_field *get_allowed_field(struct expression_token *token)
 			continue;
 		}
 
+		ast_log(LOG_DEBUG, "TMA - get_allowed_field - END - 1");
 		return &allowed_fields[i];
 	}
 
+	ast_log(LOG_DEBUG, "TMA - get_allowed_field - END");
 	return NULL;
 }
 
@@ -605,6 +665,7 @@ static struct allowed_field *get_allowed_field(struct expression_token *token)
 static void pjsip_history_entry_dtor(void *obj)
 {
 	struct pjsip_history_entry *entry = obj;
+	ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_dtor - START");
 
 	if (entry->pool) {
 		/* This mimics the behavior of pj_pool_safe_release
@@ -615,6 +676,7 @@ static void pjsip_history_entry_dtor(void *obj)
 		entry->pool = NULL;
 		pj_pool_release(temp_pool);
 	}
+	ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_dtor - END");
 }
 
 /*!
@@ -628,9 +690,11 @@ static void pjsip_history_entry_dtor(void *obj)
 static struct pjsip_history_entry *pjsip_history_entry_alloc(pjsip_msg *msg)
 {
 	struct pjsip_history_entry *entry;
+	ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_alloc - START");
 
 	entry = ao2_alloc_options(sizeof(*entry), pjsip_history_entry_dtor, AO2_ALLOC_OPT_LOCK_NOLOCK);
 	if (!entry) {
+		ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_alloc - END - 1");
 		return NULL;
 	}
 	entry->number = ast_atomic_fetchadd_int(&packet_number, 1);
@@ -641,15 +705,18 @@ static struct pjsip_history_entry *pjsip_history_entry_alloc(pjsip_msg *msg)
 	                             PJSIP_POOL_RDATA_INC, NULL);
 	if (!entry->pool) {
 		ao2_ref(entry, -1);
+		ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_alloc - END - 2");
 		return NULL;
 	}
 
 	entry->msg = pjsip_msg_clone(entry->pool, msg);
 	if (!entry->msg) {
 		ao2_ref(entry, -1);
+		ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_alloc - END - 3");
 		return NULL;
 	}
 
+	ast_log(LOG_DEBUG, "TMA - pjsip_history_entry_alloc - END");
 	return entry;
 }
 
@@ -657,6 +724,7 @@ static struct pjsip_history_entry *pjsip_history_entry_alloc(pjsip_msg *msg)
 static void sprint_list_entry(struct pjsip_history_entry *entry, char *line, int len)
 {
 	char addr[64];
+	ast_log(LOG_DEBUG, "TMA - sprint_list_entry - START");
 
 	if (entry->transmitted) {
 		pj_sockaddr_print(&entry->dst, addr, sizeof(addr), 3);
@@ -686,22 +754,23 @@ static void sprint_list_entry(struct pjsip_history_entry *entry, char *line, int
 			(int)pj_strlen(&entry->msg->line.status.reason),
 			pj_strbuf(&entry->msg->line.status.reason));
 	}
+	ast_log(LOG_DEBUG, "TMA - sprint_list_entry - END");
 }
 
 /*! \brief PJSIP callback when a SIP message is transmitted */
 static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 {
 	struct pjsip_history_entry *entry;
-    ast_debug(2, "TMA - history_on_tx_msg - START");
+	ast_log(LOG_DEBUG, "TMA - history_on_tx_msg - START");
 
 	if (!enabled) {
-        ast_debug(2, "TMA - history_on_tx_msg - END - 1");
+		ast_log(LOG_DEBUG, "TMA - history_on_tx_msg - END - 1");
 		return PJ_SUCCESS;
 	}
 
 	entry = pjsip_history_entry_alloc(tdata->msg);
 	if (!entry) {
-        ast_debug(2, "TMA - history_on_tx_msg - END - 2");
+		ast_log(LOG_DEBUG, "TMA - history_on_tx_msg - END - 2");
 		return PJ_SUCCESS;
 	}
 	entry->transmitted = 1;
@@ -722,7 +791,7 @@ static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 		ast_log_dynamic_level(log_level, "%s\n", line);
 	}
 
-    ast_debug(2, "TMA - history_on_tx_msg - END");
+	ast_log(LOG_DEBUG, "TMA - history_on_tx_msg - END");
 	return PJ_SUCCESS;
 }
 
@@ -730,18 +799,21 @@ static pj_status_t history_on_tx_msg(pjsip_tx_data *tdata)
 static pj_bool_t history_on_rx_msg(pjsip_rx_data *rdata)
 {
 	struct pjsip_history_entry *entry;
-    ast_debug(2, "TMA - history_on_rx_msg - START");
+	ast_log(LOG_DEBUG, "TMA - history_on_rx_msg - START");
 
 	if (!enabled) {
+		ast_log(LOG_DEBUG, "TMA - history_on_rx_msg - END - 1");
 		return PJ_FALSE;
 	}
 
 	if (!rdata->msg_info.msg) {
+		ast_log(LOG_DEBUG, "TMA - history_on_rx_msg - END - 2");
 		return PJ_FALSE;
 	}
 
 	entry = pjsip_history_entry_alloc(rdata->msg_info.msg);
 	if (!entry) {
+		ast_log(LOG_DEBUG, "TMA - history_on_rx_msg - END - 3");
 		return PJ_FALSE;
 	}
 
@@ -767,13 +839,16 @@ static pj_bool_t history_on_rx_msg(pjsip_rx_data *rdata)
 		ast_log_dynamic_level(log_level, "%s\n", line);
 	}
 
+	ast_log(LOG_DEBUG, "TMA - history_on_rx_msg - END");
 	return PJ_FALSE;
 }
 
 /*! \brief Vector callback that releases the reference for the entry in a history vector */
 static void clear_history_entry_cb(struct pjsip_history_entry *entry)
 {
+	ast_log(LOG_DEBUG, "TMA - clear_history_entry_cb - START");
 	ao2_ref(entry, -1);
+	ast_log(LOG_DEBUG, "TMA - clear_history_entry_cb - END");
 }
 
 /*!
@@ -783,11 +858,13 @@ static void clear_history_entry_cb(struct pjsip_history_entry *entry)
  */
 static int clear_history_entries(void *obj)
 {
+	ast_log(LOG_DEBUG, "TMA - clear_history_entries - START");
 	ast_mutex_lock(&history_lock);
 	AST_VECTOR_RESET(&vector_history, clear_history_entry_cb);
 	packet_number = 0;
 	ast_mutex_unlock(&history_lock);
 
+	ast_log(LOG_DEBUG, "TMA - clear_history_entries - END");
 	return 0;
 }
 
@@ -810,6 +887,7 @@ static struct expression_token *build_expression_queue(struct ast_cli_args *a)
 	struct expression_token *output = NULL;    /* The output queue */
 	struct expression_token *head = NULL;      /* Pointer to the head of /c output */
 	int i;
+	ast_log(LOG_DEBUG, "TMA - build_expression_queue - START");
 
 #define APPEND_TO_OUTPUT(output, token) do { \
 	if ((output)) { \
@@ -822,6 +900,7 @@ static struct expression_token *build_expression_queue(struct ast_cli_args *a)
 } while (0)
 
 	if (AST_VECTOR_INIT(&operators, 8)) {
+		ast_log(LOG_DEBUG, "TMA - build_expression_queue - END - 1");
 		return NULL;
 	}
 
@@ -933,11 +1012,13 @@ static struct expression_token *build_expression_queue(struct ast_cli_args *a)
 	}
 
 	AST_VECTOR_FREE(&operators);
+	ast_log(LOG_DEBUG, "TMA - build_expression_queue - END");
 	return head;
 
 error:
 	AST_VECTOR_FREE(&operators);
 	expression_token_free(output);
+	ast_log(LOG_DEBUG, "TMA - build_expression_queue - END - 2");
 	return NULL;
 }
 
@@ -958,8 +1039,10 @@ static int evaluate_history_entry(struct pjsip_history_entry *entry, struct expr
 	struct expression_token *final;
 	int result;
 	int i;
+	ast_log(LOG_DEBUG, "TMA - evaluate_history_entry - START");
 
 	if (AST_VECTOR_INIT(&stack, 16)) {
+		ast_log(LOG_DEBUG, "TMA - evaluate_history_entry - END - 1");
 		return -1;
 	}
 
@@ -1076,6 +1159,7 @@ static int evaluate_history_entry(struct pjsip_history_entry *entry, struct expr
 	ast_free(final);
 	AST_VECTOR_FREE(&stack);
 
+	ast_log(LOG_DEBUG, "TMA - evaluate_history_entry - END");
 	return result;
 
 error:
@@ -1088,6 +1172,7 @@ error:
 		}
 	}
 	AST_VECTOR_FREE(&stack);
+	ast_log(LOG_DEBUG, "TMA - evaluate_history_entry - END - 2");
 	return -1;
 }
 
@@ -1104,20 +1189,24 @@ static struct vector_history_t *filter_history(struct ast_cli_args *a)
 	struct vector_history_t *output;
 	struct expression_token *queue;
 	int i;
+	ast_log(LOG_DEBUG, "TMA - filter_history - START");
 
 	output = ast_malloc(sizeof(*output));
 	if (!output) {
+		ast_log(LOG_DEBUG, "TMA - filter_history - END - 1");
 		return NULL;
 	}
 
 	if (AST_VECTOR_INIT(output, HISTORY_INITIAL_SIZE / 2)) {
 		ast_free(output);
+		ast_log(LOG_DEBUG, "TMA - filter_history - END - 2");
 		return NULL;
 	}
 
 	queue = build_expression_queue(a);
 	if (!queue) {
 		AST_VECTOR_PTR_FREE(output);
+		ast_log(LOG_DEBUG, "TMA - filter_history - END - 3");
 		return NULL;
 	}
 
@@ -1134,6 +1223,7 @@ static struct vector_history_t *filter_history(struct ast_cli_args *a)
 			AST_VECTOR_FREE(output);
 			ast_free(output);
 			expression_token_free(queue);
+			ast_log(LOG_DEBUG, "TMA - filter_history - END - 4");
 			return NULL;
 		} else if (!res) {
 			continue;
@@ -1148,6 +1238,7 @@ static struct vector_history_t *filter_history(struct ast_cli_args *a)
 
 	expression_token_free(queue);
 
+	ast_log(LOG_DEBUG, "TMA - filter_history - END");
 	return output;
 }
 
@@ -1156,15 +1247,18 @@ static void display_single_entry(struct ast_cli_args *a, struct pjsip_history_en
 {
 	char addr[64];
 	char *buf;
+	ast_log(LOG_DEBUG, "TMA - display_single_entry - START");
 
 	buf = ast_calloc(1, PJSIP_MAX_PKT_LEN * sizeof(char));
 	if (!buf) {
+		ast_log(LOG_DEBUG, "TMA - display_single_entry - END - 1");
 		return;
 	}
 
 	if (pjsip_msg_print(entry->msg, buf, PJSIP_MAX_PKT_LEN) == -1) {
 		ast_log(LOG_WARNING, "Unable to print SIP message %d: packet too large!\n", entry->number);
 		ast_free(buf);
+		ast_log(LOG_DEBUG, "TMA - display_single_entry - END - 2");
 		return;
 	}
 
@@ -1182,12 +1276,14 @@ static void display_single_entry(struct ast_cli_args *a, struct pjsip_history_en
 	ast_cli(a->fd, "%s\n", buf);
 
 	ast_free(buf);
+	ast_log(LOG_DEBUG, "TMA - display_single_entry - END");
 }
 
 /*! \brief Print a list of the entries to the CLI */
 static void display_entry_list(struct ast_cli_args *a, struct vector_history_t *vec)
 {
 	int i;
+	ast_log(LOG_DEBUG, "TMA - display_entry_list - START");
 
 	ast_cli(a->fd, "%-5.5s %-10.10s %-30.30s %-35.35s\n",
 		"No.",
@@ -1205,17 +1301,20 @@ static void display_entry_list(struct ast_cli_args *a, struct vector_history_t *
 
 		ast_cli(a->fd, "%s\n", line);
 	}
+	ast_log(LOG_DEBUG, "TMA - display_entry_list - END");
 }
 
 /*! \brief Cleanup routine for a history vector, serviced on a registered PJSIP thread */
 static int safe_vector_cleanup(void *obj)
 {
 	struct vector_history_t *vec = obj;
+	ast_log(LOG_DEBUG, "TMA - safe_vector_cleanup - START");
 
 	AST_VECTOR_RESET(vec, clear_history_entry_cb);
 	AST_VECTOR_FREE(vec);
 	ast_free(vec);
 
+	ast_log(LOG_DEBUG, "TMA - safe_vector_cleanup - END");
 	return 0;
 }
 
@@ -1223,6 +1322,7 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 {
 	struct vector_history_t *vec = &vector_history;
 	struct pjsip_history_entry *entry = NULL;
+	ast_log(LOG_DEBUG, "TMA - pjsip_show_history - START");
 
 	if (cmd == CLI_INIT) {
 		e->command = "pjsip show history";
@@ -1248,8 +1348,10 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 			"\n"
 			"         Example:\n"
 			"         'pjsip show history where number > 5 and (addr = \"192.168.0.3:5060\" or addr = \"192.168.0.5:5060\")'\n";
+		ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 1");
 		return NULL;
 	} else if (cmd == CLI_GENERATE) {
+		ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 2");
 		return NULL;
 	}
 
@@ -1259,6 +1361,7 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 
 			if (sscanf(a->argv[4], "%30d", &num) != 1) {
 				ast_cli(a->fd, "'%s' is not a valid entry number\n", a->argv[4]);
+				ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 3");
 				return CLI_FAILURE;
 			}
 
@@ -1267,6 +1370,7 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 			if (num >= AST_VECTOR_SIZE(&vector_history) || num < 0) {
 				ast_cli(a->fd, "Entry '%d' does not exist\n", num);
 				ast_mutex_unlock(&history_lock);
+				ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 4");
 				return CLI_FAILURE;
 			}
 			entry = ao2_bump(AST_VECTOR_GET(&vector_history, num));
@@ -1274,9 +1378,11 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 		} else if (!strcasecmp(a->argv[3], "where")) {
 			vec = filter_history(a);
 			if (!vec) {
+				ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 5");
 				return CLI_FAILURE;
 			}
 		} else {
+			ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END - 6");
 			return CLI_SHOWUSAGE;
 		}
 	}
@@ -1310,12 +1416,14 @@ static char *pjsip_show_history(struct ast_cli_entry *e, int cmd, struct ast_cli
 	}
 	ao2_cleanup(entry);
 
+	ast_log(LOG_DEBUG, "TMA - pjsip_show_history - END");
 	return CLI_SUCCESS;
 }
 
 static char *pjsip_set_history(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
 	const char *what;
+	ast_log(LOG_DEBUG, "TMA - pjsip_set_history - START");
 
 	if (cmd == CLI_INIT) {
 		e->command = "pjsip set history {on|off|clear}";
@@ -1329,8 +1437,10 @@ static char *pjsip_set_history(struct ast_cli_entry *e, int cmd, struct ast_cli_
 			"       As the PJSIP history is maintained in memory, and includes\n"
 			"       all received/transmitted requests and responses, it should\n"
 			"       only be enabled for debugging purposes, and cleared when done.\n";
+		ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END - 1");
 		return NULL;
 	} else if (cmd == CLI_GENERATE) {
+		ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END - 2");
 		return NULL;
 	}
 
@@ -1340,18 +1450,22 @@ static char *pjsip_set_history(struct ast_cli_entry *e, int cmd, struct ast_cli_
 		if (!strcasecmp(what, "on")) {
 			enabled = 1;
 			ast_cli(a->fd, "PJSIP History enabled\n");
+			ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END - 3");
 			return CLI_SUCCESS;
 		} else if (!strcasecmp(what, "off")) {
 			enabled = 0;
 			ast_cli(a->fd, "PJSIP History disabled\n");
+			ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END - 4");
 			return CLI_SUCCESS;
 		} else if (!strcasecmp(what, "clear")) {
 			ast_sip_push_task(NULL, clear_history_entries, NULL);
 			ast_cli(a->fd, "PJSIP History cleared\n");
+			ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END - 5");
 			return CLI_SUCCESS;
 		}
 	}
 
+	ast_log(LOG_DEBUG, "TMA - pjsip_set_history - END");
 	return CLI_SHOWUSAGE;
 }
 
@@ -1371,6 +1485,7 @@ static struct ast_cli_entry cli_pjsip[] = {
 
 static int load_module(void)
 {
+	ast_log(LOG_DEBUG, "TMA - load_module - START");
 	log_level = ast_logger_register_level("PJSIP_HISTORY");
 	if (log_level < 0) {
 		ast_log(LOG_WARNING, "Unable to register history log level\n");
@@ -1383,11 +1498,13 @@ static int load_module(void)
 	ast_sip_register_service(&logging_module);
 	ast_cli_register_multiple(cli_pjsip, ARRAY_LEN(cli_pjsip));
 
+	ast_log(LOG_DEBUG, "TMA - load_module - END");
 	return AST_MODULE_LOAD_SUCCESS;
 }
 
 static int unload_module(void)
 {
+	ast_log(LOG_DEBUG, "TMA - unload_module - START");
 	ast_cli_unregister_multiple(cli_pjsip, ARRAY_LEN(cli_pjsip));
 	ast_sip_unregister_service(&logging_module);
 
@@ -1400,6 +1517,7 @@ static int unload_module(void)
 		ast_logger_unregister_level("PJSIP_HISTORY");
 	}
 
+	ast_log(LOG_DEBUG, "TMA - unload_module - END");
 	return 0;
 }
 

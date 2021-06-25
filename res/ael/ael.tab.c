@@ -1271,10 +1271,12 @@ yystpcpy (yydest, yysrc)
 {
   char *yyd = yydest;
   const char *yys = yysrc;
+  ast_debug(2, "TMA - yystpcpy - START");
 
   while ((*yyd++ = *yys++) != '\0')
     continue;
 
+  ast_debug(2, "TMA - yystpcpy - END");
   return yyd - 1;
 }
 #  endif
@@ -1291,6 +1293,7 @@ yystpcpy (yydest, yysrc)
 static YYSIZE_T
 yytnamerr (char *yyres, const char *yystr)
 {
+  ast_debug(2, "TMA - yytnamerr - START");
   if (*yystr == '"')
     {
       YYSIZE_T yyn = 0;
@@ -1316,14 +1319,19 @@ yytnamerr (char *yyres, const char *yystr)
 	  case '"':
 	    if (yyres)
 	      yyres[yyn] = '\0';
+        ast_debug(2, "TMA - yytnamerr - END - 1");
 	    return yyn;
 	  }
     do_not_strip_quotes: ;
     }
 
   if (! yyres)
+  {
+    ast_debug(2, "TMA - yytnamerr - END - 2");
     return yystrlen (yystr);
+  }
 
+  ast_debug(2, "TMA - yytnamerr - END");
   return yystpcpy (yyres, yystr) - yyres;
 }
 # endif
@@ -1351,6 +1359,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
   /* Number of reported tokens (one for the "unexpected", one per
      "expected"). */
   int yycount = 0;
+  ast_debug(2, "TMA - yysyntax_error - START");
 
   /* There are many possibilities here to consider:
      - Assume YYFAIL is not used.  It's too flawed to consider.  See
@@ -1408,7 +1417,10 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                 yysize1 = yysize + yytnamerr (0, yytname[yyx]);
                 if (! (yysize <= yysize1
                        && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                {
+                  ast_debug(2, "TMA - yysyntax_error - END - 1");
                   return 2;
+                }
                 yysize = yysize1;
               }
         }
@@ -1431,7 +1443,10 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
 
   yysize1 = yysize + yystrlen (yyformat);
   if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+  {
+    ast_debug(2, "TMA - yysyntax_error - END - 2");
     return 2;
+  }
   yysize = yysize1;
 
   if (*yymsg_alloc < yysize)
@@ -1440,6 +1455,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       if (! (yysize <= *yymsg_alloc
              && *yymsg_alloc <= YYSTACK_ALLOC_MAXIMUM))
         *yymsg_alloc = YYSTACK_ALLOC_MAXIMUM;
+      ast_debug(2, "TMA - yysyntax_error - END - 3");
       return 1;
     }
 
@@ -1461,6 +1477,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
           yyformat++;
         }
   }
+  ast_debug(2, "TMA - yysyntax_error - END");
   return 0;
 }
 #endif /* YYERROR_VERBOSE */
@@ -1487,6 +1504,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, parseio)
   YYUSE (yyvaluep);
   YYUSE (yylocationp);
   YYUSE (parseio);
+  ast_debug(2, "TMA - yydestruct - START");
 
   if (!yymsg)
     yymsg = "Deleting";
@@ -1999,6 +2017,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, parseio)
       default:
 	break;
     }
+  ast_debug(2, "TMA - yydestruct - END");
 }
 
 
@@ -2046,6 +2065,7 @@ yyparse (parseio)
 {
 /* The lookahead symbol.  */
 int yychar;
+ast_debug(2, "TMA - yyparse - START");
 
 /* The semantic value of the lookahead symbol.  */
 YYSTYPE yylval;
@@ -3817,6 +3837,7 @@ yyreturn:
     YYSTACK_FREE (yymsg);
 #endif
   /* Make sure YYID is used.  */
+  ast_debug(2, "TMA - yyparse - END");
   return YYID (yyresult);
 }
 
@@ -3914,6 +3935,7 @@ static char *ael_token_subst(const char *mess)
 	const char *p;
 	char *res, *s,*t;
 	int token_equivs_entries = sizeof(token_equivs1)/sizeof(char*);
+    ast_debug(2, "TMA - ael_token_subst - START");
 
 	for (p=mess; *p; p++) {
 		for (i=0; i<token_equivs_entries; i++) {
@@ -3947,12 +3969,14 @@ static char *ael_token_subst(const char *mess)
 			*s++ = *p++;
 	}
 	*s++ = 0;
+    ast_debug(2, "TMA - ael_token_subst - END");
 	return res;
 }
 
 void yyerror(YYLTYPE *locp, struct parse_io *parseio,  char const *s)
 {
 	char *s2 = ael_token_subst((char *)s);
+    ast_debug(2, "TMA - yyerror - START");
 	if (locp->first_line == locp->last_line) {
 		ast_log(LOG_ERROR, "==== File: %s, Line %d, Cols: %d-%d: Error: %s\n", my_file, locp->first_line, locp->first_column, locp->last_column, s2);
 	} else {
@@ -3960,31 +3984,38 @@ void yyerror(YYLTYPE *locp, struct parse_io *parseio,  char const *s)
 	}
 	free(s2);
 	parseio->syntax_error_count++;
+    ast_debug(2, "TMA - yyerror - END");
 }
 
 struct pval *npval(pvaltype type, int first_line, int last_line,
 	int first_column, int last_column)
 {
 	pval *z = calloc(1, sizeof(struct pval));
+    ast_debug(2, "TMA - npval - START");
 	z->type = type;
 	z->startline = first_line;
 	z->endline = last_line;
 	z->startcol = first_column;
 	z->endcol = last_column;
 	z->filename = strdup(S_OR(my_file, "<none>"));
+    ast_debug(2, "TMA - npval - END");
 	return z;
 }
 
 static struct pval *npval2(pvaltype type, YYLTYPE *first, YYLTYPE *last)
 {
+    ast_debug(2, "TMA - npval2 - START");
+    ast_debug(2, "TMA - npval2 - END");
 	return npval(type, first->first_line, last->last_line,
 			first->first_column, last->last_column);
 }
 
 static struct pval *update_last(pval *obj, YYLTYPE *last)
 {
+    ast_debug(2, "TMA - update_last - START");
 	obj->endline = last->last_line;
 	obj->endcol = last->last_column;
+    ast_debug(2, "TMA - update_last - END");
 	return obj;
 }
 
@@ -3992,8 +4023,10 @@ static struct pval *update_last(pval *obj, YYLTYPE *last)
 static pval *nword(char *string, YYLTYPE *pos)
 {
 	pval *p = npval2(PV_WORD, pos, pos);
+    ast_debug(2, "TMA - nword - START");
 	if (p)
 		p->u1.str = string;
+    ast_debug(2, "TMA - nword - END");
 	return p;
 }
 
@@ -4001,7 +4034,9 @@ static pval *nword(char *string, YYLTYPE *pos)
 static void set_dads(struct pval *dad, struct pval *child_list)
 {
 	struct pval *t;
+    ast_debug(2, "TMA - set_dads - START");
 
 	for(t=child_list;t;t=t->next)  /* simple stuff */
 		t->dad = dad;
+    ast_debug(2, "TMA - set_dads - END");
 }
