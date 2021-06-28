@@ -184,8 +184,7 @@ static int multihomed_rewrite_sdp(struct pjmedia_sdp_session *sdp)
 	PJSIP_URI_SCHEME_IS_TEL(uri)
 
 #define is_allowed_uri(uri) \
-	is_sip_uri(uri)
-//	(is_sip_uri(uri) || is_tel_uri(uri))
+	(is_sip_uri(uri) || is_tel_uri(uri))
 
 static void print_sanitize_debug(char *msg, pjsip_uri_context_e context, pjsip_sip_uri *uri)
 {

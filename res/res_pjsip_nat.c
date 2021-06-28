@@ -44,8 +44,7 @@
 	PJSIP_URI_SCHEME_IS_TEL(uri)
 
 #define is_allowed_uri(uri) \
-	is_sip_uri(uri)            \
-//	(is_sip_uri(uri) || is_tel_uri(uri))
+	(is_sip_uri(uri) || is_tel_uri(uri))
 
 static void save_orig_contact_host(pjsip_rx_data *rdata, pjsip_sip_uri *uri)
 {
